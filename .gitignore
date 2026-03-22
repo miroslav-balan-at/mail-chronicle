@@ -25,9 +25,4 @@ yarn-error.log*
 .env
 .env.local
 
-# Composer
-composer.lock
-
-# NPM
-package-lock.json
 
