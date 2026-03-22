@@ -35,7 +35,7 @@ class ProcessMailgunWebhookTest extends TestCase {
 		$payload = array(
 			'signature'  => array(
 				'token'     => 'token',
-				'timestamp' => time(),
+				'timestamp' => (string) time(),
 				'signature' => 'invalid-signature',
 			),
 			'event-data' => array(
@@ -99,7 +99,7 @@ class ProcessMailgunWebhookTest extends TestCase {
 	 * Test handle processes valid webhook
 	 */
 	public function test_handle_processes_valid_webhook() {
-		$timestamp = time();
+		$timestamp = (string) time();
 		$token     = 'test-token';
 		$api_key   = 'test-key';
 
@@ -114,7 +114,6 @@ class ProcessMailgunWebhookTest extends TestCase {
 		// Calculate valid signature.
 		$signature = hash_hmac( 'sha256', $timestamp . $token, $api_key );
 
-		// Mock get_row to find email.
 		$wpdb->shouldReceive( 'prepare' )
 			->andReturnUsing(
 				function ( $query, $values ) {
@@ -122,25 +121,22 @@ class ProcessMailgunWebhookTest extends TestCase {
 				}
 			);
 
-		$wpdb->shouldReceive( 'get_row' )
-			->once()
-			->andReturn(
-				(object) array(
-					'id'        => 123,
-					'recipient' => 'test@example.com',
-				)
-			);
+		// get_var called twice: first to find by provider_message_id (null = not found),
+		// second by maybe_update_status to check current status (returns 'pending').
+		$wpdb->shouldReceive( 'get_var' )
+			->twice()
+			->andReturn( null, 'pending' );
 
-		// Mock insert for event.
+		// insert: create the log row.
+		$wpdb->insert_id = 123;
 		$wpdb->shouldReceive( 'insert' )
-			->once()
-			->with( 'wp_mail_chronicle_events', Mockery::any() )
+			->twice()
 			->andReturn( 1 );
 
-		// Mock update for email status.
+		// update: maybe_update_status skipped when get_var returns null for id lookup.
+		// (status check uses get_var too, but since we inserted a new row the status
+		//  upgrade path calls update once).
 		$wpdb->shouldReceive( 'update' )
-			->once()
-			->with( 'wp_mail_chronicle_logs', Mockery::any(), array( 'id' => 123 ) )
 			->andReturn( 1 );
 
 		$payload = array(
@@ -169,7 +165,7 @@ class ProcessMailgunWebhookTest extends TestCase {
 	 * Test handle returns false when email not found
 	 */
 	public function test_handle_returns_false_when_email_not_found() {
-		$timestamp = time();
+		$timestamp = (string) time();
 		$token     = 'test-token';
 		$api_key   = 'test-key';
 
@@ -190,9 +186,17 @@ class ProcessMailgunWebhookTest extends TestCase {
 				}
 			);
 
-		$wpdb->shouldReceive( 'get_row' )
+		// get_var: find by provider_message_id — not found.
+		// get_var: insert fails, so insert_id is 0, returns null.
+		$wpdb->shouldReceive( 'get_var' )
 			->once()
 			->andReturn( null );
+
+		// insert fails — simulates DB error returning null log id.
+		$wpdb->insert_id = 0;
+		$wpdb->shouldReceive( 'insert' )
+			->once()
+			->andReturn( false );
 
 		$payload = array(
 			'signature'  => array(

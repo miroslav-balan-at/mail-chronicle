@@ -670,6 +670,33 @@ if ( ! class_exists( 'WP_Error' ) ) {
 	}
 }
 
+/**
+ * Mock wp_clear_scheduled_hook function
+ */
+if ( ! function_exists( 'wp_clear_scheduled_hook' ) ) {
+	function wp_clear_scheduled_hook( $hook, $args = array() ) {
+		return 0;
+	}
+}
+
+/**
+ * Mock wp_schedule_event function
+ */
+if ( ! function_exists( 'wp_schedule_event' ) ) {
+	function wp_schedule_event( $timestamp, $recurrence, $hook, $args = array() ) {
+		return true;
+	}
+}
+
+/**
+ * Mock wp_next_scheduled function
+ */
+if ( ! function_exists( 'wp_next_scheduled' ) ) {
+	function wp_next_scheduled( $hook, $args = array() ) {
+		return false;
+	}
+}
+
 // Initialize global mock storage
 global $_mock_options, $_mock_actions, $_mock_json_response, $_mock_rest_routes, $_mock_current_user_can;
 $_mock_options          = array();

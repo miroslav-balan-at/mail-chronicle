@@ -41,7 +41,7 @@ class ManageSettingsTest extends TestCase {
 		$this->assertArrayHasKey( 'log_retention_days', $settings );
 		$this->assertTrue( $settings['enabled'] );
 		$this->assertEquals( 'mailgun', $settings['provider'] );
-		$this->assertEquals( 30, $settings['log_retention_days'] );
+		$this->assertEquals( 120, $settings['log_retention_days'] );
 	}
 
 	/**

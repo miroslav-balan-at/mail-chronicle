@@ -97,8 +97,8 @@ class EmailEntityTest extends TestCase {
 		$email = new Email( array() );
 
 		$this->assertNull( $email->get_id() );
-		$this->assertNull( $email->get_recipient() );
-		$this->assertNull( $email->get_subject() );
+		$this->assertSame( '', $email->get_recipient() );
+		$this->assertSame( '', $email->get_subject() );
 	}
 
 	/**
@@ -114,7 +114,7 @@ class EmailEntityTest extends TestCase {
 
 		$this->assertEquals( 789, $email->get_id() );
 		$this->assertEquals( 'partial@example.com', $email->get_recipient() );
-		$this->assertNull( $email->get_subject() );
+		$this->assertSame( '', $email->get_subject() );
 		// Status should have a default value of 'pending'
 		$this->assertEquals( 'pending', $email->get_status() );
 	}

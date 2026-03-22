@@ -114,7 +114,7 @@ class GetEmailsTest extends TestCase {
 			->andReturnUsing(
 				function ( $query, $values ) {
 					// Verify search filter is in query.
-					$this->assertStringContainsString( 'recipient LIKE %s OR subject LIKE %s', $query );
+					$this->assertStringContainsString( 'l.recipient LIKE %s OR l.subject LIKE %s', $query );
 					return $query;
 				}
 			);
