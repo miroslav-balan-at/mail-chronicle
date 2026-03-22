@@ -43,6 +43,12 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
@@ -50,7 +56,10 @@ jobs:
           extensions: mbstring, intl
           coverage: none
 
-      - name: Install dependencies
+      - name: Install JS dependencies and build assets
+        run: npm ci && npm run build
+
+      - name: Install PHP dependencies
         run: composer install --no-interaction --prefer-dist
 
       - name: Run PHPStan

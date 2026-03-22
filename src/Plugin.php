@@ -175,8 +175,7 @@ final class Plugin {
 		$asset_file = MAIL_CHRONICLE_PATH . 'assets/build/index.asset.php';
 
 		if ( file_exists( $asset_file ) ) {
-			// phpcs:ignore Generic.Commenting.DocComment.MissingShort -- Declares type of require return value.
-			/** @var array{dependencies: string[], version: string} $asset */
+			/** @var array{dependencies: string[], version: string} $asset Webpack asset manifest. */
 			$asset = require $asset_file;
 
 			wp_enqueue_script(
