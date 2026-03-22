@@ -21,7 +21,7 @@ use MailChronicle\Common\Entities\Email_Status;
  *
  * Handles querying emails with filters, pagination, and sorting.
  */
-final class GetEmails {
+final class GetEmails implements GetEmailsInterface {
 
 	private string $table;
 

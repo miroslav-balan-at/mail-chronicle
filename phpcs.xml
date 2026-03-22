@@ -47,6 +47,14 @@
 		-->
 		<exclude name="Squiz.Commenting.FunctionComment"/>
 		<exclude name="Squiz.Commenting.VariableComment"/>
+
+		<!--
+			Inline @var annotations (/** @var Type $var *\/) are a standard PHP
+			pattern for narrowing types in generic contexts such as DI container
+			resolution. The Generic sniff incorrectly treats the @var tag as a
+			missing short description; exclude it to allow these annotations.
+		-->
+		<exclude name="Generic.Commenting.DocComment.MissingShort"/>
 	</rule>
 
 	<!--

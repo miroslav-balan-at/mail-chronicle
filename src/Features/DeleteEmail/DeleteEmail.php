@@ -16,7 +16,7 @@ use MailChronicle\Common\Constants;
 /**
  * Delete Email Handler
  */
-final class DeleteEmail {
+final class DeleteEmail implements DeleteEmailInterface {
 
 	// phpcs:ignore Generic.Commenting.DocComment.MissingShort -- Shaped array type for PHPStan.
 	/** @var array{logs: string, events: string} */

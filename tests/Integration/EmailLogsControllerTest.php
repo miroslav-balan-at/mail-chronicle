@@ -9,6 +9,8 @@ namespace MailChronicle\Tests\Integration;
 
 use MailChronicle\Tests\TestCase;
 use MailChronicle\Features\GetEmails\EmailLogsController;
+use MailChronicle\Features\GetEmails\GetEmailsInterface;
+use MailChronicle\Features\DeleteEmail\DeleteEmailInterface;
 use Mockery;
 
 /**
@@ -21,8 +23,9 @@ class EmailLogsControllerTest extends TestCase {
 	 */
 	public function test_register_routes_registers_all_endpoints() {
 		$wpdb       = $this->create_mock_wpdb();
-		$get_emails = Mockery::mock( 'MailChronicle\Features\GetEmails\GetEmails' );
-		$controller = new EmailLogsController( $get_emails );
+		$get_emails    = Mockery::mock( GetEmailsInterface::class );
+		$delete_emails = Mockery::mock( DeleteEmailInterface::class );
+		$controller    = new EmailLogsController( $get_emails, $delete_emails );
 
 		// Mock register_rest_route calls
 		global $_mock_rest_routes;
@@ -39,8 +42,9 @@ class EmailLogsControllerTest extends TestCase {
 	 */
 	public function test_permissions_check_requires_manage_options() {
 		$wpdb       = $this->create_mock_wpdb();
-		$get_emails = Mockery::mock( 'MailChronicle\Features\GetEmails\GetEmails' );
-		$controller = new EmailLogsController( $get_emails );
+		$get_emails    = Mockery::mock( GetEmailsInterface::class );
+		$delete_emails = Mockery::mock( DeleteEmailInterface::class );
+		$controller    = new EmailLogsController( $get_emails, $delete_emails );
 
 		// Test with permission
 		global $_mock_current_user_can;
@@ -60,8 +64,9 @@ class EmailLogsControllerTest extends TestCase {
 	 */
 	public function test_get_collection_params_returns_correct_structure() {
 		$wpdb       = $this->create_mock_wpdb();
-		$get_emails = Mockery::mock( 'MailChronicle\Features\GetEmails\GetEmails' );
-		$controller = new EmailLogsController( $get_emails );
+		$get_emails    = Mockery::mock( GetEmailsInterface::class );
+		$delete_emails = Mockery::mock( DeleteEmailInterface::class );
+		$controller    = new EmailLogsController( $get_emails, $delete_emails );
 
 		$params = $controller->get_collection_params();
 

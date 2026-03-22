@@ -11,6 +11,7 @@ declare(strict_types=1);
 namespace MailChronicle\Features\GetEmails;
 
 use MailChronicle\Features\DeleteEmail\DeleteEmail;
+use MailChronicle\Features\DeleteEmail\DeleteEmailInterface;
 use WP_REST_Controller;
 use WP_REST_Server;
 use WP_Error;
@@ -20,18 +21,21 @@ use WP_Error;
  */
 class EmailLogsController extends WP_REST_Controller {
 
-	private GetEmails $handler;
+	private GetEmailsInterface $handler;
 
-	private DeleteEmail $delete_handler;
+	private DeleteEmailInterface $delete_handler;
 
 	/**
 	 * Constructor
+	 *
+	 * @param GetEmailsInterface  $handler       Query handler.
+	 * @param DeleteEmailInterface $delete_handler Delete handler.
 	 */
-	public function __construct() {
+	public function __construct( GetEmailsInterface $handler, DeleteEmailInterface $delete_handler ) {
 		$this->namespace      = 'mail-chronicle/v1';
 		$this->rest_base      = 'emails';
-		$this->handler        = new GetEmails();
-		$this->delete_handler = new DeleteEmail();
+		$this->handler        = $handler;
+		$this->delete_handler = $delete_handler;
 	}
 
 	/**

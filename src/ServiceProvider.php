@@ -11,9 +11,11 @@ namespace MailChronicle;
 
 use MailChronicle\Features\LogEmail\LogEmail;
 use MailChronicle\Features\GetEmails\GetEmails;
+use MailChronicle\Features\GetEmails\GetEmailsInterface;
 use MailChronicle\Features\GetEmails\EmailLogsPage;
 use MailChronicle\Features\GetEmails\EmailLogsController;
 use MailChronicle\Features\DeleteEmail\DeleteEmail;
+use MailChronicle\Features\DeleteEmail\DeleteEmailInterface;
 use MailChronicle\Features\ProcessMailgunWebhook\ProcessMailgunWebhook;
 use MailChronicle\Features\ProcessMailgunWebhook\WebhookController;
 use MailChronicle\Features\Sync\SyncController;
@@ -83,8 +85,12 @@ final class ServiceProvider {
 
 		$this->container->register(
 			'feature.get_emails.controller',
-			function ( $_container ) {
-				return new EmailLogsController();
+			function ( $container ) {
+				/** @var GetEmailsInterface $get_emails Resolved query handler. */
+				$get_emails = $container->get( 'feature.get_emails' );
+				/** @var DeleteEmailInterface $delete_email Resolved delete handler. */
+				$delete_email = $container->get( 'feature.delete_email' );
+				return new EmailLogsController( $get_emails, $delete_email );
 			}
 		);
 
