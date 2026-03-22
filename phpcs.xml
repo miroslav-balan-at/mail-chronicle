@@ -80,5 +80,11 @@
 				<element value="MailChronicle"/>
 			</property>
 		</properties>
+		<!--
+			Template files receive variables extracted from $args by load_template().
+			These are local template variables, not global variables, so the prefix
+			requirement does not apply.
+		-->
+		<exclude-pattern>*/templates/*</exclude-pattern>
 	</rule>
 </ruleset>
