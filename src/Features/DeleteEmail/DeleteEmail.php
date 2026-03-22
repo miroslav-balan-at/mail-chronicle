@@ -2,7 +2,8 @@
 /**
  * Feature: Delete Email
  *
- * This feature handles deleting email logs.
+ * Application service — delegates persistence to EmailRepositoryInterface.
+ * No SQL in this class.
  *
  * @package MailChronicle
  */
@@ -11,31 +12,20 @@ declare(strict_types=1);
 
 namespace MailChronicle\Features\DeleteEmail;
 
-use MailChronicle\Common\Constants;
+use MailChronicle\Common\Repository\EmailRepositoryInterface;
 
 /**
  * Delete Email Handler
  */
 final class DeleteEmail implements DeleteEmailInterface {
 
-	// phpcs:ignore Generic.Commenting.DocComment.MissingShort -- Shaped array type for PHPStan.
-	/** @var array{logs: string, events: string} */
-	private array $tables;
-
-	private \wpdb $wpdb;
+	private EmailRepositoryInterface $email_repository;
 
 	/**
 	 * Constructor
 	 */
-	public function __construct() {
-		// phpcs:ignore Generic.Commenting.DocComment.MissingShort -- Declares type of WordPress $wpdb global.
-		/** @var \wpdb $wpdb WordPress database instance. */
-		global $wpdb;
-		$this->wpdb   = $wpdb;
-		$this->tables = [
-			'logs'   => $wpdb->prefix . Constants::TABLE_LOGS,
-			'events' => $wpdb->prefix . Constants::TABLE_EVENTS,
-		];
+	public function __construct( EmailRepositoryInterface $email_repository ) {
+		$this->email_repository = $email_repository;
 	}
 
 	public function handle( int $id ): bool {
@@ -48,22 +38,7 @@ final class DeleteEmail implements DeleteEmailInterface {
 		 */
 		do_action( 'mail_chronicle_before_email_deleted', $id );
 
-		// Delete associated events first to avoid orphaned records.
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		$this->wpdb->delete(
-			$this->tables['events'],
-			[ 'email_log_id' => $id ],
-			[ '%d' ]
-		);
-
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		$result = $this->wpdb->delete(
-			$this->tables['logs'],
-			[ 'id' => $id ],
-			[ '%d' ]
-		);
-
-		$deleted = false !== $result && $result > 0;
+		$deleted = $this->email_repository->delete( $id );
 
 		if ( $deleted ) {
 			/**
@@ -90,10 +65,7 @@ final class DeleteEmail implements DeleteEmailInterface {
 		 */
 		do_action( 'mail_chronicle_before_all_emails_deleted' );
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name comes from $wpdb->prefix, not user input.
-		$this->wpdb->query( "TRUNCATE TABLE {$this->tables['events']}" );
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name comes from $wpdb->prefix, not user input.
-		$deleted = $this->wpdb->query( "TRUNCATE TABLE {$this->tables['logs']}" );
+		$result = $this->email_repository->delete_all();
 
 		/**
 		 * Fires after all email logs and events have been truncated.
@@ -102,6 +74,6 @@ final class DeleteEmail implements DeleteEmailInterface {
 		 */
 		do_action( 'mail_chronicle_after_all_emails_deleted' );
 
-		return false === $deleted ? -1 : 0;
+		return $result;
 	}
 }

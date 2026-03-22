@@ -16,6 +16,7 @@ use MailChronicle\Common\Constants;
 use MailChronicle\Common\Entities\Email;
 use MailChronicle\Common\Entities\Email_Provider;
 use MailChronicle\Common\Entities\Email_Status;
+use MailChronicle\Common\Repository\EmailRepositoryInterface;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -26,19 +27,13 @@ final class LogEmail {
 
 	private ?int $last_email_id = null;
 
-	private string $table;
-
-	private \wpdb $wpdb;
+	private EmailRepositoryInterface $email_repository;
 
 	/**
 	 * Constructor
 	 */
-	public function __construct() {
-		// phpcs:ignore Generic.Commenting.DocComment.MissingShort -- Declares type of WordPress $wpdb global.
-		/** @var \wpdb $wpdb WordPress database instance. */
-		global $wpdb;
-		$this->wpdb  = $wpdb;
-		$this->table = $wpdb->prefix . Constants::TABLE_LOGS;
+	public function __construct( EmailRepositoryInterface $email_repository ) {
+		$this->email_repository = $email_repository;
 	}
 
 	/**
@@ -113,7 +108,7 @@ final class LogEmail {
 		 */
 		do_action( 'mail_chronicle_email_logging', $email_data );
 
-		$inserted_id = $this->save( $email_data );
+		$inserted_id = $this->email_repository->save( new Email( $email_data ) );
 		if ( false !== $inserted_id ) {
 			$this->last_email_id = $inserted_id;
 		}
@@ -147,72 +142,46 @@ final class LogEmail {
 				if ( '' !== $phpmailer->MessageID ) {
 					// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- PHPMailer uses PascalCase property names.
 					$message_id = trim( $phpmailer->MessageID, '<>' );
-					$this->update_status( $email_id, Email_Status::Sent->value, $message_id );
+					$this->email_repository->update_status( $email_id, Email_Status::Sent->value, $message_id );
+				} else {
+					$this->email_repository->update_status( $email_id, Email_Status::Sent->value );
 				}
+
+				/**
+				 * Fires after an email log's send status has been updated.
+				 *
+				 * @since 1.0.0
+				 *
+				 * @param int         $email_id   Log entry ID.
+				 * @param string      $status     New status value.
+				 * @param string|null $message_id Provider message ID, or null on failure.
+				 */
+				// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
+				$resolved_message_id = '' !== $phpmailer->MessageID ? trim( $phpmailer->MessageID, '<>' ) : null;
+				do_action( 'mail_chronicle_email_status_updated', $email_id, Email_Status::Sent->value, $resolved_message_id );
 			}
 		);
 
 		add_action(
 			'wp_mail_failed',
 			function () use ( $email_id ) {
-				$this->update_status( $email_id, Email_Status::Failed->value );
+				$this->email_repository->update_status( $email_id, Email_Status::Failed->value );
+
+				/**
+				 * Fires after an email log's send status has been updated.
+				 *
+				 * @since 1.0.0
+				 *
+				 * @param int         $email_id   Log entry ID.
+				 * @param string      $status     New status value.
+				 * @param string|null $message_id Provider message ID, or null on failure.
+				 */
+				do_action( 'mail_chronicle_email_status_updated', $email_id, Email_Status::Failed->value, null );
 			}
 		);
 	}
 
 	// ── Private helpers ───────────────────────────────────────────────────────
-
-	private function save( array $data ): int|false {
-		$email = new Email( $data );
-
-		$db_data = [
-			'provider_message_id' => $email->get_provider_message_id(),
-			'provider'            => $email->get_provider(),
-			'recipient'           => $email->get_recipient(),
-			'subject'             => $email->get_subject(),
-			'message_html'        => $email->get_message_html(),
-			'message_plain'       => $email->get_message_plain(),
-			'headers'             => $email->get_headers(),
-			'attachments'         => $email->get_attachments(),
-			'status'              => $email->get_status(),
-			'sent_at'             => $email->get_sent_at(),
-			'created_at'          => current_time( 'mysql' ),
-			'updated_at'          => current_time( 'mysql' ),
-		];
-
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
-		$result = $this->wpdb->insert( $this->table, $db_data );
-
-		return false !== $result ? (int) $this->wpdb->insert_id : false;
-	}
-
-	private function update_status( int $id, string $status, ?string $message_id = null ): void {
-		$data = [
-			'status'     => $status,
-			'updated_at' => current_time( 'mysql' ),
-		];
-
-		if ( null !== $message_id && '' !== $message_id ) {
-			$data['provider_message_id'] = $message_id;
-		}
-
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		$this->wpdb->update( $this->table, $data, [ 'id' => $id ] );
-
-		/**
-		 * Fires after an email log's send status has been updated.
-		 *
-		 * Triggered when PHPMailer reports success (status = 'sent') or failure
-		 * (status = 'failed') immediately after wp_mail() completes.
-		 *
-		 * @since 1.0.0
-		 *
-		 * @param int         $id         Log entry ID.
-		 * @param string      $status     New status value (e.g. 'sent', 'failed').
-		 * @param string|null $message_id Provider message ID, or null on failure.
-		 */
-		do_action( 'mail_chronicle_email_status_updated', $id, $status, $message_id );
-	}
 
 	/**
 	 * Detect which email provider is active.

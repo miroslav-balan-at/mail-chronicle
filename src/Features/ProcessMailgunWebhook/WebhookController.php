@@ -24,10 +24,10 @@ class WebhookController extends WP_REST_Controller {
 	/**
 	 * Constructor
 	 */
-	public function __construct() {
+	public function __construct( ProcessMailgunWebhook $handler ) {
 		$this->namespace = 'mail-chronicle/v1';
 		$this->rest_base = 'webhook';
-		$this->handler   = new ProcessMailgunWebhook();
+		$this->handler   = $handler;
 	}
 
 	/**

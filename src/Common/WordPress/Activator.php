@@ -28,8 +28,12 @@ final class Activator {
 	 * Activate plugin
 	 */
 	public static function activate(): void {
+		// phpcs:ignore Generic.Commenting.DocComment.MissingShort -- Declares type of WordPress $wpdb global.
+		/** @var \wpdb $wpdb WordPress database instance. */
+		global $wpdb;
+
 		// Create / update database tables.
-		( new Schema() )->create_tables();
+		( new Schema( $wpdb ) )->create_tables();
 
 		// Set default options (only when not already set).
 		if ( false === get_option( Constants::OPTION_SETTINGS ) ) {

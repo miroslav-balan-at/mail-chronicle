@@ -11,6 +11,8 @@
  *   - Store the `next` cursor after each trustworthy page so the next cron
  *     run continues exactly where we left off — no duplicates, no gaps
  *
+ * Delegates all persistence to EmailRepositoryInterface.  No SQL in this class.
+ *
  * @package MailChronicle
  */
 
@@ -19,9 +21,11 @@ declare(strict_types=1);
 namespace MailChronicle\Features\SyncFromMailgun;
 
 use MailChronicle\Common\Constants;
+use MailChronicle\Common\Entities\Email;
 use MailChronicle\Common\Entities\Email_Provider;
 use MailChronicle\Common\Entities\Email_Status;
 use MailChronicle\Common\Entities\Mailgun_Region;
+use MailChronicle\Common\Repository\EmailRepositoryInterface;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -72,18 +76,10 @@ final class SyncFromMailgun {
 		'clicked'    => Email_Status::Clicked,
 	];
 
-	private \wpdb $wpdb;
+	private EmailRepositoryInterface $email_repository;
 
-	private string $table;
-
-	public function __construct( ?\wpdb $wpdb = null ) {
-		if ( null === $wpdb ) {
-			// phpcs:ignore Generic.Commenting.DocComment.MissingShort -- Declares type of WordPress $wpdb global.
-			/** @var \wpdb $wpdb WordPress database instance. */
-			global $wpdb;
-		}
-		$this->wpdb  = $wpdb;
-		$this->table = $this->wpdb->prefix . Constants::TABLE_LOGS;
+	public function __construct( EmailRepositoryInterface $email_repository ) {
+		$this->email_repository = $email_repository;
 	}
 
 	/**
@@ -290,7 +286,7 @@ final class SyncFromMailgun {
 			}
 		}
 
-		$existing = $this->fetch_existing_ids( $message_ids );
+		$existing = $this->email_repository->find_existing_ids_by_provider_message_ids( $message_ids );
 
 		$synced  = 0;
 		$updated = 0;
@@ -305,7 +301,7 @@ final class SyncFromMailgun {
 			}
 
 			if ( isset( $existing[ $mid ] ) ) {
-				$this->update_status( $existing[ $mid ], $event );
+				$this->update_existing( $existing[ $mid ], $event );
 				++$updated;
 			} else {
 				$this->insert_from_event( $event );
@@ -317,51 +313,16 @@ final class SyncFromMailgun {
 	}
 
 	/**
-	 * Single query to find which message-ids already exist in the DB.
-	 *
-	 * @return array<string, int>
-	 */
-	private function fetch_existing_ids( array $message_ids ): array {
-		if ( [] === $message_ids ) {
-			return [];
-		}
-
-		$placeholders = implode( ', ', array_fill( 0, count( $message_ids ), '%s' ) );
-
-		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- Query is wrapped in $wpdb->prepare() with dynamic %s placeholders built from array_fill(); table name comes from $wpdb->prefix, not user input.
-		$existing_sql = "SELECT id, provider_message_id FROM {$this->table} WHERE provider_message_id IN ({$placeholders})";
-		// @phpstan-ignore-next-line
-		$rows = $this->wpdb->get_results( $this->wpdb->prepare( $existing_sql, ...$message_ids ) );
-		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
-
-		$map = [];
-		foreach ( is_array( $rows ) ? $rows : [] as $row ) {
-			if ( ! is_object( $row ) || ! isset( $row->provider_message_id, $row->id ) ) {
-				continue;
-			}
-			if ( ! is_string( $row->provider_message_id ) || ! is_numeric( $row->id ) ) {
-				continue;
-			}
-			$map[ $row->provider_message_id ] = (int) $row->id;
-		}
-
-		return $map;
-	}
-
-	/**
 	 * Insert a new log row from a Mailgun event.
 	 * Body content is intentionally omitted — it's populated by webhooks instead.
 	 */
 	private function insert_from_event( array $event ): void {
-		$message = isset( $event['message'] ) && is_array( $event['message'] ) ? $event['message'] : [];
-		$headers = isset( $message['headers'] ) && is_array( $message['headers'] ) ? $message['headers'] : [];
-		$status  = self::map_event_status( is_string( $event['event'] ?? null ) ? $event['event'] : '' );
-
+		$message   = isset( $event['message'] ) && is_array( $event['message'] ) ? $event['message'] : [];
+		$headers   = isset( $message['headers'] ) && is_array( $message['headers'] ) ? $message['headers'] : [];
+		$status    = self::map_event_status( is_string( $event['event'] ?? null ) ? $event['event'] : '' );
 		$timestamp = is_numeric( $event['timestamp'] ?? null ) ? (int) $event['timestamp'] : time();
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
-		$this->wpdb->insert(
-			$this->table,
+		$email = new Email(
 			[
 				'provider_message_id' => is_string( $headers['message-id'] ?? null ) ? $headers['message-id'] : '',
 				'provider'            => Email_Provider::Mailgun->value,
@@ -369,42 +330,25 @@ final class SyncFromMailgun {
 				'subject'             => is_string( $headers['subject'] ?? null ) ? $headers['subject'] : '',
 				'message_html'        => '',
 				'message_plain'       => '',
-				'headers'             => wp_json_encode( $headers ),
+				'headers'             => (string) wp_json_encode( $headers ),
 				'status'              => $status->value,
 				'sent_at'             => gmdate( 'Y-m-d H:i:s', $timestamp ),
-				'created_at'          => current_time( 'mysql' ),
-				'updated_at'          => current_time( 'mysql' ),
-			],
-			[ '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s' ]
+			]
 		);
+
+		$this->email_repository->save( $email );
 	}
 
-	private function update_status( int $id, array $event ): void {
-		$new_status = self::map_event_status( is_string( $event['event'] ?? null ) ? $event['event'] : '' );
-
-		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Query is wrapped in $wpdb->prepare(); table name comes from $wpdb->prefix, not user input.
-		$status_template = "SELECT status FROM {$this->table} WHERE id = %d";
-		// @phpstan-ignore-next-line
-		$current_value = $this->wpdb->get_var( $this->wpdb->prepare( $status_template, $id ) );
-		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-
+	private function update_existing( int $id, array $event ): void {
+		$new_status     = self::map_event_status( is_string( $event['event'] ?? null ) ? $event['event'] : '' );
+		$current_value  = $this->email_repository->get_status( $id );
 		$current_status = Email_Status::tryFrom( is_string( $current_value ) ? $current_value : '' ) ?? Email_Status::Pending;
 
 		if ( ! Email_Status::is_upgrade( $current_status, $new_status ) ) {
 			return;
 		}
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		$this->wpdb->update(
-			$this->table,
-			[
-				'status'     => $new_status->value,
-				'updated_at' => current_time( 'mysql' ),
-			],
-			[ 'id' => $id ],
-			[ '%s', '%s' ],
-			[ '%d' ]
-		);
+		$this->email_repository->update_status( $id, $new_status->value );
 	}
 
 	private static function map_event_status( string $event ): Email_Status {

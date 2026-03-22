@@ -64,8 +64,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `POST /webhook/mailgun` — Mailgun event receiver
 
 **Developer hooks**
-- 13 actions: `mc_email_logging`, `mc_after_email_logged`, `mc_email_status_updated`, `mc_before_email_deleted`, `mc_after_email_deleted`, `mc_before_all_emails_deleted`, `mc_after_all_emails_deleted`, `mc_after_settings_saved`, `mc_before_webhook_processed`, `mc_after_webhook_processed`, `mc_before_sync`, `mc_after_sync`
-- 4 filters: `mc_before_email_logged` (supports suppression by returning `[]`), `mc_get_emails_args`, `mc_get_emails`, `mc_before_settings_saved`
+- 12 actions: `mail_chronicle_email_logging`, `mail_chronicle_after_email_logged`, `mail_chronicle_email_status_updated`, `mail_chronicle_before_email_deleted`, `mail_chronicle_after_email_deleted`, `mail_chronicle_before_all_emails_deleted`, `mail_chronicle_after_all_emails_deleted`, `mail_chronicle_after_settings_saved`, `mail_chronicle_before_webhook_processed`, `mail_chronicle_after_webhook_processed`, `mail_chronicle_before_sync`, `mail_chronicle_after_sync`
+- 4 filters: `mail_chronicle_before_email_logged` (supports suppression by returning `[]`), `mail_chronicle_get_emails_args`, `mail_chronicle_get_emails`, `mail_chronicle_before_settings_saved`
 
 **Database**
 - Two tables: `mail_chronicle_logs`, `mail_chronicle_events`
@@ -75,9 +75,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 **Architecture**
 - PHP 8.1 backed string enums for all domain values (`Email_Status`, `Email_Provider`, `Mailgun_Region`)
 - Vertical Slice Architecture — each feature fully self-contained
+- Repository pattern: `EmailRepositoryInterface` + `ProviderEventRepositoryInterface`; wpdb implementations isolated in `Common/Infrastructure/`
+- `EmailQuery` value object encapsulates all list-query parameters and prevents SQL injection via orderby whitelist
+- Constructor injection throughout; `ServiceProvider` is the single composition root
 - Provider-agnostic sync endpoint: adding a new provider requires one new `case` in `SyncController`
 - PSR-4 autoloading, Composer-managed dependencies
-- WP Coding Standards compliant (phpcs.xml)
+- PHPStan level 10, WP Coding Standards compliant (phpcs.xml)
 
 **i18n**
 - All strings pass through `__()` / `_e()` — no translated strings stored in DB

@@ -147,6 +147,46 @@ final class Email {
 	}
 
 	/**
+	 * Upgrade the status only when the incoming value is higher-priority.
+	 * Returns true when the status was actually changed.
+	 */
+	public function upgrade_status( Email_Status $incoming ): bool {
+		$current = Email_Status::tryFrom( $this->status ) ?? Email_Status::Pending;
+		if ( ! Email_Status::is_upgrade( $current, $incoming ) ) {
+			return false;
+		}
+		$this->status     = $incoming->value;
+		$this->updated_at = current_time( 'mysql' );
+		return true;
+	}
+
+	/**
+	 * Mark the email as sent, optionally recording the provider message ID.
+	 */
+	public function mark_sent( ?string $provider_message_id = null ): void {
+		if ( null !== $provider_message_id && '' !== $provider_message_id ) {
+			$this->provider_message_id = $provider_message_id;
+		}
+		$this->status     = Email_Status::Sent->value;
+		$this->updated_at = current_time( 'mysql' );
+	}
+
+	/**
+	 * Mark the email as failed.
+	 */
+	public function mark_failed(): void {
+		$this->status     = Email_Status::Failed->value;
+		$this->updated_at = current_time( 'mysql' );
+	}
+
+	/**
+	 * Assign the provider-issued message ID (e.g. from PHPMailer or API).
+	 */
+	public function assign_provider_message_id( string $provider_message_id ): void {
+		$this->provider_message_id = $provider_message_id;
+	}
+
+	/**
 	 * Get sent at
 	 */
 	public function get_sent_at(): string {

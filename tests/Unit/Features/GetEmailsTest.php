@@ -8,6 +8,9 @@
 namespace MailChronicle\Tests\Unit\Features;
 
 use MailChronicle\Tests\TestCase;
+use MailChronicle\Common\Entities\Email;
+use MailChronicle\Common\Repository\EmailRepositoryInterface;
+use MailChronicle\Common\Repository\ProviderEventRepositoryInterface;
 use MailChronicle\Features\GetEmails\GetEmails;
 use Mockery;
 
@@ -28,37 +31,29 @@ class GetEmailsTest extends TestCase {
 	 * Test handle returns emails with default args
 	 */
 	public function test_handle_returns_emails_with_defaults() {
-		$wpdb    = $this->create_mock_wpdb();
-		$handler = $this->create_handler_with_wpdb( $wpdb );
+		$email_repository = Mockery::mock( EmailRepositoryInterface::class );
+		$event_repository = Mockery::mock( ProviderEventRepositoryInterface::class );
 
-		// Mock get_var for count.
-		$wpdb->shouldReceive( 'get_var' )
-			->once()
-			->andReturn( 5 );
-
-		// Mock prepare.
-		$wpdb->shouldReceive( 'prepare' )
-			->andReturnUsing(
-				function ( $query, $values ) {
-					return $query;
-				}
-			);
-
-		// Mock get_results.
-		$wpdb->shouldReceive( 'get_results' )
+		$email_repository->shouldReceive( 'query' )
 			->once()
 			->andReturn(
 				array(
-					array(
-						'id'        => 1,
-						'recipient' => 'test@example.com',
-						'subject'   => 'Test',
-						'status'    => 'sent',
+					'emails' => array(
+						new Email(
+							array(
+								'id'        => 1,
+								'recipient' => 'test@example.com',
+								'subject'   => 'Test',
+								'status'    => 'sent',
+							)
+						),
 					),
+					'total'  => 5,
 				)
 			);
 
-		$result = $handler->handle();
+		$handler = new GetEmails( $email_repository, $event_repository );
+		$result  = $handler->handle();
 
 		$this->assertIsArray( $result );
 		$this->assertArrayHasKey( 'emails', $result );
@@ -68,120 +63,100 @@ class GetEmailsTest extends TestCase {
 	}
 
 	/**
-	 * Test handle applies status filter
+	 * Test handle passes status filter to repository query
 	 */
 	public function test_handle_applies_status_filter() {
-		$wpdb    = $this->create_mock_wpdb();
-		$handler = $this->create_handler_with_wpdb( $wpdb );
+		$email_repository = Mockery::mock( EmailRepositoryInterface::class );
+		$event_repository = Mockery::mock( ProviderEventRepositoryInterface::class );
 
-		$wpdb->shouldReceive( 'get_var' )
+		$captured_query = null;
+		$email_repository->shouldReceive( 'query' )
 			->once()
-			->andReturn( 2 );
-
-		$wpdb->shouldReceive( 'prepare' )
 			->andReturnUsing(
-				function ( $query, $values ) {
-					// Verify status filter is in query.
-					$this->assertStringContainsString( 'status = %s', $query );
-					return $query;
+				function ( $email_query ) use ( &$captured_query ) {
+					$captured_query = $email_query;
+					return array( 'emails' => array(), 'total' => 0 );
 				}
 			);
 
-		$wpdb->shouldReceive( 'get_results' )
-			->once()
-			->andReturn( array() );
-
+		$handler = new GetEmails( $email_repository, $event_repository );
 		$handler->handle( array( 'status' => 'failed' ) );
+
+		$this->assertNotNull( $captured_query );
+		$this->assertEquals( 'failed', $captured_query->status );
 	}
 
 	/**
-	 * Test handle applies search filter
+	 * Test handle passes search filter to repository query
 	 */
 	public function test_handle_applies_search_filter() {
-		$wpdb    = $this->create_mock_wpdb();
-		$handler = $this->create_handler_with_wpdb( $wpdb );
+		$email_repository = Mockery::mock( EmailRepositoryInterface::class );
+		$event_repository = Mockery::mock( ProviderEventRepositoryInterface::class );
 
-		$wpdb->shouldReceive( 'esc_like' )
+		$captured_query = null;
+		$email_repository->shouldReceive( 'query' )
 			->once()
-			->with( 'search term' )
-			->andReturn( 'search term' );
-
-		$wpdb->shouldReceive( 'get_var' )
-			->once()
-			->andReturn( 1 );
-
-		$wpdb->shouldReceive( 'prepare' )
 			->andReturnUsing(
-				function ( $query, $values ) {
-					// Verify search filter is in query.
-					$this->assertStringContainsString( 'l.recipient LIKE %s OR l.subject LIKE %s', $query );
-					return $query;
+				function ( $email_query ) use ( &$captured_query ) {
+					$captured_query = $email_query;
+					return array( 'emails' => array(), 'total' => 0 );
 				}
 			);
 
-		$wpdb->shouldReceive( 'get_results' )
-			->once()
-			->andReturn( array() );
-
+		$handler = new GetEmails( $email_repository, $event_repository );
 		$handler->handle( array( 'search' => 'search term' ) );
+
+		$this->assertNotNull( $captured_query );
+		$this->assertEquals( 'search term', $captured_query->search );
 	}
 
 	/**
-	 * Test handle applies pagination
+	 * Test handle passes pagination to repository query
 	 */
 	public function test_handle_applies_pagination() {
-		$wpdb    = $this->create_mock_wpdb();
-		$handler = $this->create_handler_with_wpdb( $wpdb );
+		$email_repository = Mockery::mock( EmailRepositoryInterface::class );
+		$event_repository = Mockery::mock( ProviderEventRepositoryInterface::class );
 
-		$wpdb->shouldReceive( 'get_var' )
+		$captured_query = null;
+		$email_repository->shouldReceive( 'query' )
 			->once()
-			->andReturn( 100 );
-
-		$wpdb->shouldReceive( 'prepare' )
 			->andReturnUsing(
-				function ( $query, $values ) {
-					// Verify LIMIT and OFFSET.
-					$this->assertStringContainsString( 'LIMIT %d OFFSET %d', $query );
-					// Page 2 with 20 per page = offset 20.
-					$this->assertEquals( 20, end( $values ) );
-					return $query;
+				function ( $email_query ) use ( &$captured_query ) {
+					$captured_query = $email_query;
+					return array( 'emails' => array(), 'total' => 100 );
 				}
 			);
 
-		$wpdb->shouldReceive( 'get_results' )
-			->once()
-			->andReturn( array() );
-
+		$handler = new GetEmails( $email_repository, $event_repository );
 		$handler->handle(
 			array(
 				'page'     => 2,
 				'per_page' => 20,
 			)
 		);
+
+		$this->assertNotNull( $captured_query );
+		$this->assertEquals( 2, $captured_query->page );
+		$this->assertEquals( 20, $captured_query->per_page );
+		$this->assertEquals( 20, $captured_query->offset() );
 	}
 
 	/**
-	 * Test get_by_id returns email
+	 * Test get_by_id delegates to repository
 	 */
 	public function test_get_by_id_returns_email() {
-		$wpdb    = $this->create_mock_wpdb();
-		$handler = $this->create_handler_with_wpdb( $wpdb );
+		$email_repository = Mockery::mock( EmailRepositoryInterface::class );
+		$event_repository = Mockery::mock( ProviderEventRepositoryInterface::class );
 
-		$wpdb->shouldReceive( 'prepare' )
+		$expected_email = new Email( array( 'id' => 123, 'recipient' => 'test@example.com', 'subject' => 'Test' ) );
+
+		$email_repository->shouldReceive( 'find_by_id' )
 			->once()
-			->andReturn( 'SELECT * FROM wp_mail_chronicle_logs WHERE id = 123' );
+			->with( 123 )
+			->andReturn( $expected_email );
 
-		$wpdb->shouldReceive( 'get_row' )
-			->once()
-			->andReturn(
-				array(
-					'id'        => 123,
-					'recipient' => 'test@example.com',
-					'subject'   => 'Test',
-				)
-			);
-
-		$email = $handler->get_by_id( 123 );
+		$handler = new GetEmails( $email_repository, $event_repository );
+		$email   = $handler->get_by_id( 123 );
 
 		$this->assertNotNull( $email );
 		$this->assertEquals( 123, $email->get_id() );
@@ -191,65 +166,41 @@ class GetEmailsTest extends TestCase {
 	 * Test get_by_id returns null when not found
 	 */
 	public function test_get_by_id_returns_null_when_not_found() {
-		$wpdb    = $this->create_mock_wpdb();
-		$handler = $this->create_handler_with_wpdb( $wpdb );
+		$email_repository = Mockery::mock( EmailRepositoryInterface::class );
+		$event_repository = Mockery::mock( ProviderEventRepositoryInterface::class );
 
-		$wpdb->shouldReceive( 'prepare' )
+		$email_repository->shouldReceive( 'find_by_id' )
 			->once()
-			->andReturn( 'SELECT * FROM wp_mail_chronicle_logs WHERE id = 999' );
-
-		$wpdb->shouldReceive( 'get_row' )
-			->once()
+			->with( 999 )
 			->andReturn( null );
 
-		$email = $handler->get_by_id( 999 );
+		$handler = new GetEmails( $email_repository, $event_repository );
+		$email   = $handler->get_by_id( 999 );
 
 		$this->assertNull( $email );
 	}
 
 	/**
-	 * Test get_events returns events
+	 * Test get_events delegates to event repository
 	 */
 	public function test_get_events_returns_events() {
-		$wpdb    = $this->create_mock_wpdb();
-		$handler = $this->create_handler_with_wpdb( $wpdb );
+		$email_repository = Mockery::mock( EmailRepositoryInterface::class );
+		$event_repository = Mockery::mock( ProviderEventRepositoryInterface::class );
 
-		$wpdb->shouldReceive( 'prepare' )
+		$event_repository->shouldReceive( 'find_by_email_log_id' )
 			->once()
-			->andReturn( 'SELECT * FROM wp_mail_chronicle_events WHERE email_log_id = 123' );
-
-		$wpdb->shouldReceive( 'get_results' )
-			->once()
+			->with( 123 )
 			->andReturn(
 				array(
-					array(
-						'id'           => 1,
-						'email_log_id' => 123,
-						'event_type'   => 'delivered',
-					),
-					array(
-						'id'           => 2,
-						'email_log_id' => 123,
-						'event_type'   => 'opened',
-					),
+					array( 'id' => 1, 'email_log_id' => 123, 'event_type' => 'delivered' ),
+					array( 'id' => 2, 'email_log_id' => 123, 'event_type' => 'opened' ),
 				)
 			);
 
-		$events = $handler->get_events( 123 );
+		$handler = new GetEmails( $email_repository, $event_repository );
+		$events  = $handler->get_events( 123 );
 
 		$this->assertIsArray( $events );
 		$this->assertCount( 2, $events );
 	}
-
-	/**
-	 * Create handler with wpdb
-	 *
-	 * @param mixed $wpdb WordPress database.
-	 * @return GetEmails
-	 */
-	private function create_handler_with_wpdb( $wpdb ) {
-		$GLOBALS['wpdb'] = $wpdb;
-		return new GetEmails();
-	}
 }
-

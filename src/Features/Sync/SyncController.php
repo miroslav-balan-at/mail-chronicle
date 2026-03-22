@@ -33,12 +33,15 @@ defined( 'ABSPATH' ) || exit;
  */
 class SyncController extends WP_REST_Controller {
 
+	private SyncFromMailgun $sync_mailgun;
+
 	/**
 	 * Constructor
 	 */
-	public function __construct() {
-		$this->namespace = 'mail-chronicle/v1';
-		$this->rest_base = 'sync';
+	public function __construct( SyncFromMailgun $sync_mailgun ) {
+		$this->namespace    = 'mail-chronicle/v1';
+		$this->rest_base    = 'sync';
+		$this->sync_mailgun = $sync_mailgun;
 	}
 
 	/**
@@ -146,7 +149,7 @@ class SyncController extends WP_REST_Controller {
 	 */
 	private function dispatch( Email_Provider $provider, array $args ): array {
 		return match ( $provider ) {
-			Email_Provider::Mailgun => ( new SyncFromMailgun() )->handle( $args ),
+			Email_Provider::Mailgun => $this->sync_mailgun->handle( $args ),
 			default                 => [
 				'success' => false,
 				'synced'  => 0,

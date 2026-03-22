@@ -9,6 +9,7 @@ namespace MailChronicle\Tests\Unit\Features;
 
 use MailChronicle\Tests\TestCase;
 use MailChronicle\Features\LogEmail\LogEmail;
+use MailChronicle\Common\Repository\EmailRepositoryInterface;
 use Mockery;
 
 /**
@@ -28,10 +29,10 @@ class LogEmailTest extends TestCase {
 	 * Test handle returns args unchanged when logging is disabled
 	 */
 	public function test_handle_returns_args_when_logging_disabled() {
-		// Mock get_option to return disabled settings.
 		$GLOBALS['test_options'] = array( 'enabled' => false );
 
-		$logger = $this->create_logger_with_mock_wpdb();
+		$email_repository = Mockery::mock( EmailRepositoryInterface::class );
+		$logger           = new LogEmail( $email_repository );
 
 		$args = array(
 			'to'      => 'test@example.com',
@@ -49,7 +50,6 @@ class LogEmailTest extends TestCase {
 	 * Test handle logs email when logging is enabled
 	 */
 	public function test_handle_logs_email_when_enabled() {
-		// Mock get_option to return enabled settings.
 		$this->set_mock_option(
 			'mail_chronicle_settings',
 			array(
@@ -58,15 +58,12 @@ class LogEmailTest extends TestCase {
 			)
 		);
 
-		$wpdb   = $this->create_mock_wpdb();
-		$logger = $this->create_logger_with_wpdb( $wpdb );
-
-		// Expect insert to be called.
-		$wpdb->shouldReceive( 'insert' )
+		$email_repository = Mockery::mock( EmailRepositoryInterface::class );
+		$email_repository->shouldReceive( 'save' )
 			->once()
-			->andReturn( 1 );
+			->andReturn( 123 );
 
-		$wpdb->insert_id = 123;
+		$logger = new LogEmail( $email_repository );
 
 		$args = array(
 			'to'          => 'test@example.com',
@@ -93,21 +90,18 @@ class LogEmailTest extends TestCase {
 			)
 		);
 
-		$wpdb   = $this->create_mock_wpdb();
-		$logger = $this->create_logger_with_wpdb( $wpdb );
-
-		// Capture the data passed to insert.
-		$inserted_data = null;
-		$wpdb->shouldReceive( 'insert' )
+		$saved_email      = null;
+		$email_repository = Mockery::mock( EmailRepositoryInterface::class );
+		$email_repository->shouldReceive( 'save' )
 			->once()
 			->andReturnUsing(
-				function ( $table, $data ) use ( &$inserted_data ) {
-					$inserted_data = $data;
-					return 1;
+				function ( $email ) use ( &$saved_email ) {
+					$saved_email = $email;
+					return 123;
 				}
 			);
 
-		$wpdb->insert_id = 123;
+		$logger = new LogEmail( $email_repository );
 
 		$args = array(
 			'to'      => 'test@example.com',
@@ -118,9 +112,9 @@ class LogEmailTest extends TestCase {
 
 		$logger->handle( $args );
 
-		$this->assertNotNull( $inserted_data );
-		$this->assertEquals( 'test@example.com', $inserted_data['recipient'] );
-		$this->assertStringNotContainsString( '<script>', $inserted_data['subject'] );
+		$this->assertNotNull( $saved_email );
+		$this->assertEquals( 'test@example.com', $saved_email->get_recipient() );
+		$this->assertStringNotContainsString( '<script>', $saved_email->get_subject() );
 	}
 
 	/**
@@ -135,20 +129,18 @@ class LogEmailTest extends TestCase {
 			)
 		);
 
-		$wpdb   = $this->create_mock_wpdb();
-		$logger = $this->create_logger_with_wpdb( $wpdb );
-
-		$inserted_data = null;
-		$wpdb->shouldReceive( 'insert' )
+		$saved_email      = null;
+		$email_repository = Mockery::mock( EmailRepositoryInterface::class );
+		$email_repository->shouldReceive( 'save' )
 			->once()
 			->andReturnUsing(
-				function ( $table, $data ) use ( &$inserted_data ) {
-					$inserted_data = $data;
-					return 1;
+				function ( $email ) use ( &$saved_email ) {
+					$saved_email = $email;
+					return 123;
 				}
 			);
 
-		$wpdb->insert_id = 123;
+		$logger = new LogEmail( $email_repository );
 
 		$args = array(
 			'to'      => 'test@example.com',
@@ -159,7 +151,7 @@ class LogEmailTest extends TestCase {
 
 		$logger->handle( $args );
 
-		$this->assertStringContainsString( '<br', $inserted_data['message_html'] );
+		$this->assertStringContainsString( '<br', $saved_email->get_message_html() );
 	}
 
 	/**
@@ -174,20 +166,18 @@ class LogEmailTest extends TestCase {
 			)
 		);
 
-		$wpdb   = $this->create_mock_wpdb();
-		$logger = $this->create_logger_with_wpdb( $wpdb );
-
-		$inserted_data = null;
-		$wpdb->shouldReceive( 'insert' )
+		$saved_email      = null;
+		$email_repository = Mockery::mock( EmailRepositoryInterface::class );
+		$email_repository->shouldReceive( 'save' )
 			->once()
 			->andReturnUsing(
-				function ( $table, $data ) use ( &$inserted_data ) {
-					$inserted_data = $data;
-					return 1;
+				function ( $email ) use ( &$saved_email ) {
+					$saved_email = $email;
+					return 123;
 				}
 			);
 
-		$wpdb->insert_id = 123;
+		$logger = new LogEmail( $email_repository );
 
 		$html_message = '<p>Test message</p>';
 		$args         = array(
@@ -199,39 +189,6 @@ class LogEmailTest extends TestCase {
 
 		$logger->handle( $args );
 
-		$this->assertEquals( $html_message, $inserted_data['message_html'] );
-	}
-
-	/**
-	 * Create logger with mock wpdb
-	 *
-	 * @return LogEmail
-	 */
-	private function create_logger_with_mock_wpdb() {
-		$wpdb = $this->create_mock_wpdb();
-		return $this->create_logger_with_wpdb( $wpdb );
-	}
-
-	/**
-	 * Create logger with specific wpdb
-	 *
-	 * @param mixed $wpdb WordPress database.
-	 * @return LogEmail
-	 */
-	private function create_logger_with_wpdb( $wpdb ) {
-		$GLOBALS['wpdb'] = $wpdb;
-
-		// Override get_option for this test.
-		if ( ! function_exists( 'MailChronicle\Tests\Unit\Features\get_option' ) ) {
-			eval(
-				'namespace MailChronicle\Tests\Unit\Features;
-				function get_option($option, $default = false) {
-					return $GLOBALS["test_options"] ?? $default;
-				}'
-			);
-		}
-
-		return new LogEmail();
+		$this->assertEquals( $html_message, $saved_email->get_message_html() );
 	}
 }
-

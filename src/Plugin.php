@@ -9,6 +9,7 @@ declare(strict_types=1);
 
 namespace MailChronicle;
 
+use MailChronicle\Common\Database\Schema;
 use MailChronicle\Common\WordPress\Activator;
 use MailChronicle\Common\WordPress\Deactivator;
 use MailChronicle\Common\WordPress\HooksLoader;
@@ -226,7 +227,8 @@ final class Plugin {
 	 * @return void
 	 */
 	public function maybe_upgrade_schema(): void {
-		$schema = new \MailChronicle\Common\Database\Schema();
+		/** @var Schema $schema */
+		$schema = $this->container->get( 'common.database.schema' );
 		if ( $schema->needs_update() ) {
 			$schema->create_tables();
 		}

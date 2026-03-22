@@ -9,6 +9,7 @@ namespace MailChronicle\Tests\Unit\Features;
 
 use MailChronicle\Tests\TestCase;
 use MailChronicle\Features\LogEmail\LogEmail;
+use MailChronicle\Common\Repository\EmailRepositoryInterface;
 use Mockery;
 
 /**
@@ -36,20 +37,18 @@ class LogEmailEdgeCasesTest extends TestCase {
 			)
 		);
 
-		$wpdb   = $this->create_mock_wpdb();
-		$logger = $this->create_logger_with_wpdb( $wpdb );
-
-		$inserted_data = null;
-		$wpdb->shouldReceive( 'insert' )
+		$saved_email      = null;
+		$email_repository = Mockery::mock( EmailRepositoryInterface::class );
+		$email_repository->shouldReceive( 'save' )
 			->once()
 			->andReturnUsing(
-				function ( $table, $data ) use ( &$inserted_data ) {
-					$inserted_data = $data;
-					return 1;
+				function ( $email ) use ( &$saved_email ) {
+					$saved_email = $email;
+					return 123;
 				}
 			);
 
-		$wpdb->insert_id = 123;
+		$logger = new LogEmail( $email_repository );
 
 		$args = array(
 			'to'      => array( 'first@example.com', 'second@example.com' ),
@@ -61,7 +60,7 @@ class LogEmailEdgeCasesTest extends TestCase {
 		$logger->handle( $args );
 
 		// Should use first recipient.
-		$this->assertEquals( 'first@example.com', $inserted_data['recipient'] );
+		$this->assertEquals( 'first@example.com', $saved_email->get_recipient() );
 	}
 
 	/**
@@ -76,20 +75,18 @@ class LogEmailEdgeCasesTest extends TestCase {
 			)
 		);
 
-		$wpdb   = $this->create_mock_wpdb();
-		$logger = $this->create_logger_with_wpdb( $wpdb );
-
-		$inserted_data = null;
-		$wpdb->shouldReceive( 'insert' )
+		$saved_email      = null;
+		$email_repository = Mockery::mock( EmailRepositoryInterface::class );
+		$email_repository->shouldReceive( 'save' )
 			->once()
 			->andReturnUsing(
-				function ( $table, $data ) use ( &$inserted_data ) {
-					$inserted_data = $data;
-					return 1;
+				function ( $email ) use ( &$saved_email ) {
+					$saved_email = $email;
+					return 123;
 				}
 			);
 
-		$wpdb->insert_id = 123;
+		$logger = new LogEmail( $email_repository );
 
 		$args = array(
 			'to'      => 'test@example.com',
@@ -100,7 +97,7 @@ class LogEmailEdgeCasesTest extends TestCase {
 
 		$logger->handle( $args );
 
-		$this->assertEquals( '', $inserted_data['subject'] );
+		$this->assertEquals( '', $saved_email->get_subject() );
 	}
 
 	/**
@@ -115,20 +112,18 @@ class LogEmailEdgeCasesTest extends TestCase {
 			)
 		);
 
-		$wpdb   = $this->create_mock_wpdb();
-		$logger = $this->create_logger_with_wpdb( $wpdb );
-
-		$inserted_data = null;
-		$wpdb->shouldReceive( 'insert' )
+		$saved_email      = null;
+		$email_repository = Mockery::mock( EmailRepositoryInterface::class );
+		$email_repository->shouldReceive( 'save' )
 			->once()
 			->andReturnUsing(
-				function ( $table, $data ) use ( &$inserted_data ) {
-					$inserted_data = $data;
-					return 1;
+				function ( $email ) use ( &$saved_email ) {
+					$saved_email = $email;
+					return 123;
 				}
 			);
 
-		$wpdb->insert_id = 123;
+		$logger = new LogEmail( $email_repository );
 
 		$args = array(
 			'to'      => 'test@example.com',
@@ -139,8 +134,8 @@ class LogEmailEdgeCasesTest extends TestCase {
 
 		$logger->handle( $args );
 
-		$this->assertStringContainsString( 'Content-Type: text/html', $inserted_data['headers'] );
-		$this->assertStringContainsString( 'From: sender@example.com', $inserted_data['headers'] );
+		$this->assertStringContainsString( 'Content-Type: text/html', $saved_email->get_headers() );
+		$this->assertStringContainsString( 'From: sender@example.com', $saved_email->get_headers() );
 	}
 
 	/**
@@ -155,20 +150,18 @@ class LogEmailEdgeCasesTest extends TestCase {
 			)
 		);
 
-		$wpdb   = $this->create_mock_wpdb();
-		$logger = $this->create_logger_with_wpdb( $wpdb );
-
-		$inserted_data = null;
-		$wpdb->shouldReceive( 'insert' )
+		$saved_email      = null;
+		$email_repository = Mockery::mock( EmailRepositoryInterface::class );
+		$email_repository->shouldReceive( 'save' )
 			->once()
 			->andReturnUsing(
-				function ( $table, $data ) use ( &$inserted_data ) {
-					$inserted_data = $data;
-					return 1;
+				function ( $email ) use ( &$saved_email ) {
+					$saved_email = $email;
+					return 123;
 				}
 			);
 
-		$wpdb->insert_id = 123;
+		$logger = new LogEmail( $email_repository );
 
 		$args = array(
 			'to'          => 'test@example.com',
@@ -180,8 +173,8 @@ class LogEmailEdgeCasesTest extends TestCase {
 
 		$logger->handle( $args );
 
-		$this->assertNotEmpty( $inserted_data['attachments'] );
-		$this->assertStringContainsString( 'file1.pdf', $inserted_data['attachments'] );
+		$this->assertNotEmpty( $saved_email->get_attachments() );
+		$this->assertStringContainsString( 'file1.pdf', $saved_email->get_attachments() );
 	}
 
 	/**
@@ -196,20 +189,18 @@ class LogEmailEdgeCasesTest extends TestCase {
 			)
 		);
 
-		$wpdb   = $this->create_mock_wpdb();
-		$logger = $this->create_logger_with_wpdb( $wpdb );
-
-		$inserted_data = null;
-		$wpdb->shouldReceive( 'insert' )
+		$saved_email      = null;
+		$email_repository = Mockery::mock( EmailRepositoryInterface::class );
+		$email_repository->shouldReceive( 'save' )
 			->once()
 			->andReturnUsing(
-				function ( $table, $data ) use ( &$inserted_data ) {
-					$inserted_data = $data;
-					return 1;
+				function ( $email ) use ( &$saved_email ) {
+					$saved_email = $email;
+					return 123;
 				}
 			);
 
-		$wpdb->insert_id = 123;
+		$logger = new LogEmail( $email_repository );
 
 		$long_message = str_repeat( 'This is a very long message. ', 1000 );
 
@@ -222,29 +213,7 @@ class LogEmailEdgeCasesTest extends TestCase {
 
 		$logger->handle( $args );
 
-		$this->assertNotEmpty( $inserted_data['message_html'] );
-		$this->assertNotEmpty( $inserted_data['message_plain'] );
-	}
-
-	/**
-	 * Create logger with wpdb
-	 *
-	 * @param mixed $wpdb WordPress database.
-	 * @return LogEmail
-	 */
-	private function create_logger_with_wpdb( $wpdb ) {
-		$GLOBALS['wpdb'] = $wpdb;
-
-		if ( ! function_exists( 'MailChronicle\Tests\Unit\Features\get_option' ) ) {
-			eval(
-				'namespace MailChronicle\Tests\Unit\Features;
-				function get_option($option, $default = false) {
-					return $GLOBALS["test_options"] ?? $default;
-				}'
-			);
-		}
-
-		return new LogEmail();
+		$this->assertNotEmpty( $saved_email->get_message_html() );
+		$this->assertNotEmpty( $saved_email->get_message_plain() );
 	}
 }
-

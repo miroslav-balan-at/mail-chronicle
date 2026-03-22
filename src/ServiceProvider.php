@@ -9,23 +9,28 @@ declare(strict_types=1);
 
 namespace MailChronicle;
 
-use MailChronicle\Features\LogEmail\LogEmail;
-use MailChronicle\Features\GetEmails\GetEmails;
-use MailChronicle\Features\GetEmails\GetEmailsInterface;
-use MailChronicle\Features\GetEmails\EmailLogsPage;
-use MailChronicle\Features\GetEmails\EmailLogsController;
+use MailChronicle\Common\Database\Schema;
+use MailChronicle\Common\Infrastructure\WpdbEmailRepository;
+use MailChronicle\Common\Infrastructure\WpdbProviderEventRepository;
+use MailChronicle\Common\Repository\EmailRepositoryInterface;
+use MailChronicle\Common\Repository\ProviderEventRepositoryInterface;
 use MailChronicle\Features\DeleteEmail\DeleteEmail;
 use MailChronicle\Features\DeleteEmail\DeleteEmailInterface;
+use MailChronicle\Features\GetEmails\EmailLogsController;
+use MailChronicle\Features\GetEmails\EmailLogsPage;
+use MailChronicle\Features\GetEmails\GetEmails;
+use MailChronicle\Features\GetEmails\GetEmailsInterface;
+use MailChronicle\Features\LogEmail\LogEmail;
+use MailChronicle\Features\ManageSettings\ManageSettings;
+use MailChronicle\Features\ManageSettings\SettingsController;
+use MailChronicle\Features\ManageSettings\SettingsPage;
 use MailChronicle\Features\ProcessMailgunWebhook\ProcessMailgunWebhook;
 use MailChronicle\Features\ProcessMailgunWebhook\WebhookController;
+use MailChronicle\Features\PurgeOldLogs\PurgeOldLogs;
+use MailChronicle\Features\PurgeOldLogs\PurgeScheduler;
 use MailChronicle\Features\Sync\SyncController;
 use MailChronicle\Features\SyncFromMailgun\SyncFromMailgun;
 use MailChronicle\Features\SyncFromMailgun\SyncScheduler;
-use MailChronicle\Features\ManageSettings\ManageSettings;
-use MailChronicle\Features\ManageSettings\SettingsPage;
-use MailChronicle\Features\PurgeOldLogs\PurgeOldLogs;
-use MailChronicle\Features\PurgeOldLogs\PurgeScheduler;
-use MailChronicle\Common\Database\Schema;
 
 /**
  * Service Provider Class
@@ -44,14 +49,33 @@ final class ServiceProvider {
 	}
 
 	/**
-	 * Register common/shared services
+	 * Register common/shared services (schema + repositories)
 	 */
 	private function register_common(): void {
+		// phpcs:ignore Generic.Commenting.DocComment.MissingShort -- Declares type of WordPress $wpdb global.
+		/** @var \wpdb $wpdb WordPress database instance. */
+		global $wpdb;
+
 		// Database schema.
 		$this->container->register(
 			'common.database.schema',
-			function ( $_container ) {
-				return new Schema();
+			function ( $_container ) use ( $wpdb ) {
+				return new Schema( $wpdb );
+			}
+		);
+
+		// Repositories — registered once, shared across all features.
+		$this->container->register(
+			'common.repository.email',
+			function ( $_container ) use ( $wpdb ) {
+				return new WpdbEmailRepository( $wpdb );
+			}
+		);
+
+		$this->container->register(
+			'common.repository.provider_event',
+			function ( $_container ) use ( $wpdb ) {
+				return new WpdbProviderEventRepository( $wpdb );
 			}
 		);
 	}
@@ -63,16 +87,22 @@ final class ServiceProvider {
 		// Feature: Log Email.
 		$this->container->register(
 			'feature.log_email',
-			function ( $_container ) {
-				return new LogEmail();
+			function ( $container ) {
+				/** @var EmailRepositoryInterface $email_repository */
+				$email_repository = $container->get( 'common.repository.email' );
+				return new LogEmail( $email_repository );
 			}
 		);
 
 		// Feature: Get Emails.
 		$this->container->register(
 			'feature.get_emails',
-			function ( $_container ) {
-				return new GetEmails();
+			function ( $container ) {
+				/** @var EmailRepositoryInterface $email_repository */
+				$email_repository = $container->get( 'common.repository.email' );
+				/** @var ProviderEventRepositoryInterface $event_repository */
+				$event_repository = $container->get( 'common.repository.provider_event' );
+				return new GetEmails( $email_repository, $event_repository );
 			}
 		);
 
@@ -86,9 +116,9 @@ final class ServiceProvider {
 		$this->container->register(
 			'feature.get_emails.controller',
 			function ( $container ) {
-				/** @var GetEmailsInterface $get_emails Resolved query handler. */
+				/** @var GetEmailsInterface $get_emails */
 				$get_emails = $container->get( 'feature.get_emails' );
-				/** @var DeleteEmailInterface $delete_email Resolved delete handler. */
+				/** @var DeleteEmailInterface $delete_email */
 				$delete_email = $container->get( 'feature.delete_email' );
 				return new EmailLogsController( $get_emails, $delete_email );
 			}
@@ -97,60 +127,82 @@ final class ServiceProvider {
 		// Feature: Delete Email.
 		$this->container->register(
 			'feature.delete_email',
-			function ( $_container ) {
-				return new DeleteEmail();
+			function ( $container ) {
+				/** @var EmailRepositoryInterface $email_repository */
+				$email_repository = $container->get( 'common.repository.email' );
+				return new DeleteEmail( $email_repository );
 			}
 		);
 
 		// Feature: Process Mailgun Webhook.
 		$this->container->register(
 			'feature.process_webhook',
-			function ( $_container ) {
-				return new ProcessMailgunWebhook();
+			function ( $container ) {
+				/** @var EmailRepositoryInterface $email_repository */
+				$email_repository = $container->get( 'common.repository.email' );
+				/** @var ProviderEventRepositoryInterface $event_repository */
+				$event_repository = $container->get( 'common.repository.provider_event' );
+				return new ProcessMailgunWebhook( $email_repository, $event_repository );
 			}
 		);
 
 		$this->container->register(
 			'feature.process_webhook.controller',
-			function ( $_container ) {
-				return new WebhookController();
+			function ( $container ) {
+				/** @var ProcessMailgunWebhook $process_webhook */
+				$process_webhook = $container->get( 'feature.process_webhook' );
+				return new WebhookController( $process_webhook );
 			}
 		);
 
 		// Feature: Sync From Mailgun.
 		$this->container->register(
 			'feature.sync_mailgun',
-			function ( $_container ) {
-				return new SyncFromMailgun();
+			function ( $container ) {
+				/** @var EmailRepositoryInterface $email_repository */
+				$email_repository = $container->get( 'common.repository.email' );
+				return new SyncFromMailgun( $email_repository );
 			}
 		);
 
 		$this->container->register(
 			'feature.sync_mailgun.controller',
-			function ( $_container ) {
-				return new SyncController();
+			function ( $container ) {
+				/** @var SyncFromMailgun $sync_mailgun */
+				$sync_mailgun = $container->get( 'feature.sync_mailgun' );
+				return new SyncController( $sync_mailgun );
 			}
 		);
 
 		$this->container->register(
 			'feature.sync_mailgun.scheduler',
-			function ( $_container ) {
-				return new SyncScheduler();
+			function ( $container ) {
+				/** @var SyncFromMailgun $sync_mailgun */
+				$sync_mailgun = $container->get( 'feature.sync_mailgun' );
+				/** @var ManageSettings $manage_settings */
+				$manage_settings = $container->get( 'feature.manage_settings' );
+				return new SyncScheduler( $sync_mailgun, $manage_settings );
 			}
 		);
 
 		// Feature: Purge Old Logs.
 		$this->container->register(
 			'feature.purge_old_logs',
-			function ( $_container ) {
-				return new PurgeOldLogs();
+			function ( $container ) {
+				/** @var EmailRepositoryInterface $email_repository */
+				$email_repository = $container->get( 'common.repository.email' );
+				return new PurgeOldLogs( $email_repository );
 			}
 		);
 
 		$this->container->register(
 			'feature.purge_old_logs.scheduler',
-			function ( $_container ) {
-				return new PurgeScheduler();
+			function ( $container ) {
+				/** @var PurgeOldLogs $purge_old_logs */
+				$purge_old_logs = $container->get( 'feature.purge_old_logs' );
+				/** @var ManageSettings $manage_settings */
+				$manage_settings = $container->get( 'feature.manage_settings' );
+				return new PurgeScheduler( $purge_old_logs, $manage_settings );
 			}
 		);
 
@@ -164,15 +216,19 @@ final class ServiceProvider {
 
 		$this->container->register(
 			'feature.manage_settings.page',
-			function ( $_container ) {
-				return new SettingsPage();
+			function ( $container ) {
+				/** @var ManageSettings $manage_settings */
+				$manage_settings = $container->get( 'feature.manage_settings' );
+				/** @var DeleteEmailInterface $delete_email */
+				$delete_email = $container->get( 'feature.delete_email' );
+				return new SettingsPage( $manage_settings, $delete_email );
 			}
 		);
 
 		$this->container->register(
 			'feature.manage_settings.controller',
 			function ( $_container ) {
-				return new \MailChronicle\Features\ManageSettings\SettingsController();
+				return new SettingsController();
 			}
 		);
 	}

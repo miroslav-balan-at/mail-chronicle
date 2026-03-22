@@ -26,6 +26,29 @@ final class ProviderEvent {
 
 	private string $created_at;
 
+	/**
+	 * Named constructor — build a ProviderEvent from a Mailgun event-data array.
+	 *
+	 * @param int                  $email_log_id Log entry this event belongs to.
+	 * @param array<string, mixed> $event_data   Raw Mailgun event-data sub-array.
+	 */
+	public static function from_mailgun_event( int $email_log_id, array $event_data ): self {
+		$event_type      = is_string( $event_data['event'] ?? null ) ? $event_data['event'] : '';
+		$raw_occurred_ts = $event_data['timestamp'] ?? null;
+		$occurred_at     = is_numeric( $raw_occurred_ts )
+			? gmdate( 'Y-m-d H:i:s', (int) $raw_occurred_ts )
+			: current_time( 'mysql', true );
+
+		return new self(
+			[
+				'email_log_id' => $email_log_id,
+				'event_type'   => $event_type,
+				'event_data'   => (string) wp_json_encode( $event_data ),
+				'occurred_at'  => $occurred_at,
+			]
+		);
+	}
+
 	public function __construct( array $data = [] ) {
 		$this->id           = is_numeric( $data['id'] ?? null ) ? (int) $data['id'] : null;
 		$this->email_log_id = is_numeric( $data['email_log_id'] ?? null ) ? (int) $data['email_log_id'] : 0;

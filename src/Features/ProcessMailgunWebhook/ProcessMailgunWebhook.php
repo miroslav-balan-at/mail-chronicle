@@ -3,6 +3,8 @@
  * Feature: Process Mailgun Webhook
  *
  * Primary real-time path for delivery status updates.
+ * Delegates all persistence to EmailRepositoryInterface and
+ * ProviderEventRepositoryInterface.  No SQL in this class.
  *
  * @package MailChronicle
  */
@@ -12,8 +14,12 @@ declare(strict_types=1);
 namespace MailChronicle\Features\ProcessMailgunWebhook;
 
 use MailChronicle\Common\Constants;
+use MailChronicle\Common\Entities\Email;
 use MailChronicle\Common\Entities\Email_Provider;
 use MailChronicle\Common\Entities\Email_Status;
+use MailChronicle\Common\Entities\ProviderEvent;
+use MailChronicle\Common\Repository\EmailRepositoryInterface;
+use MailChronicle\Common\Repository\ProviderEventRepositoryInterface;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -27,24 +33,19 @@ final class ProcessMailgunWebhook {
 	 */
 	const REPLAY_WINDOW = 900;
 
-	private \wpdb $wpdb;
+	private EmailRepositoryInterface $email_repository;
 
-	// phpcs:ignore Generic.Commenting.DocComment.MissingShort -- Shaped array type for PHPStan.
-	/** @var array{logs: string, events: string} */
-	private array $tables;
+	private ProviderEventRepositoryInterface $event_repository;
 
 	/**
 	 * Constructor
 	 */
-	public function __construct() {
-		// phpcs:ignore Generic.Commenting.DocComment.MissingShort -- Declares type of WordPress $wpdb global.
-		/** @var \wpdb $wpdb WordPress database instance. */
-		global $wpdb;
-		$this->wpdb   = $wpdb;
-		$this->tables = [
-			'logs'   => $wpdb->prefix . Constants::TABLE_LOGS,
-			'events' => $wpdb->prefix . Constants::TABLE_EVENTS,
-		];
+	public function __construct(
+		EmailRepositoryInterface $email_repository,
+		ProviderEventRepositoryInterface $event_repository
+	) {
+		$this->email_repository = $email_repository;
+		$this->event_repository = $event_repository;
 	}
 
 	public function handle( array $payload ): bool {
@@ -53,6 +54,8 @@ final class ProcessMailgunWebhook {
 		}
 
 		$raw_event_data = $payload['event-data'] ?? [];
+		// phpcs:ignore Generic.Commenting.DocComment.MissingShort -- Narrows is_array() check return type for PHPStan.
+		/** @var array<string, mixed> $event_data */
 		$event_data     = is_array( $raw_event_data ) ? $raw_event_data : [];
 		$event_type     = is_string( $event_data['event'] ?? null ) ? $event_data['event'] : '';
 		$raw_message    = is_array( $event_data['message'] ?? null ) ? $event_data['message'] : [];
@@ -82,7 +85,7 @@ final class ProcessMailgunWebhook {
 		}
 
 		$this->maybe_update_status( $log_id, $event_type );
-		$this->save_event( $log_id, $event_type, $event_data );
+		$this->event_repository->save( ProviderEvent::from_mailgun_event( $log_id, $event_data ) );
 
 		/**
 		 * Fires after a Mailgun webhook payload has been processed successfully.
@@ -101,14 +104,10 @@ final class ProcessMailgunWebhook {
 	// ── Private helpers ───────────────────────────────────────────────────────
 
 	private function find_or_create_log( string $message_id, array $event_data ): ?int {
-		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Query is wrapped in $wpdb->prepare(); table name comes from $wpdb->prefix, not user input.
-		// @phpstan-ignore-next-line
-		$find_sql = $this->wpdb->prepare( "SELECT id FROM {$this->tables['logs']} WHERE provider_message_id = %s", $message_id );
-		$id       = $this->wpdb->get_var( $find_sql );
-		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$existing_id = $this->email_repository->find_id_by_provider_message_id( $message_id );
 
-		if ( null !== $id && '' !== $id ) {
-			return (int) $id;
+		if ( null !== $existing_id ) {
+			return $existing_id;
 		}
 
 		$event_message = is_array( $event_data['message'] ?? null ) ? $event_data['message'] : [];
@@ -119,9 +118,7 @@ final class ProcessMailgunWebhook {
 		$now           = current_time( 'mysql', true );
 		$sent_at       = is_numeric( $raw_timestamp ) ? gmdate( 'Y-m-d H:i:s', (int) $raw_timestamp ) : $now;
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
-		$inserted = $this->wpdb->insert(
-			$this->tables['logs'],
+		$email = new Email(
 			[
 				'provider_message_id' => $message_id,
 				'provider'            => Email_Provider::Mailgun->value,
@@ -134,11 +131,12 @@ final class ProcessMailgunWebhook {
 				'sent_at'             => $sent_at,
 				'created_at'          => $now,
 				'updated_at'          => $now,
-			],
-			[ '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s' ]
+			]
 		);
 
-		return ( false !== $inserted ) ? (int) $this->wpdb->insert_id : null;
+		$inserted_id = $this->email_repository->save( $email );
+
+		return false !== $inserted_id ? $inserted_id : null;
 	}
 
 	private function maybe_update_status( int $log_id, string $event_type ): void {
@@ -148,49 +146,14 @@ final class ProcessMailgunWebhook {
 			return;
 		}
 
-		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Query is wrapped in $wpdb->prepare(); table name comes from $wpdb->prefix, not user input.
-		// @phpstan-ignore-next-line
-		$status_sql    = $this->wpdb->prepare( "SELECT status FROM {$this->tables['logs']} WHERE id = %d", $log_id );
-		$raw_value     = $this->wpdb->get_var( $status_sql );
-		$current_value = is_string( $raw_value ) ? $raw_value : '';
-		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		$current_status = Email_Status::tryFrom( $current_value ) ?? Email_Status::Pending;
+		$current_value  = $this->email_repository->get_status( $log_id );
+		$current_status = Email_Status::tryFrom( is_string( $current_value ) ? $current_value : '' ) ?? Email_Status::Pending;
 
 		if ( ! Email_Status::is_upgrade( $current_status, $new_status ) ) {
 			return;
 		}
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		$this->wpdb->update(
-			$this->tables['logs'],
-			[
-				'status'     => $new_status->value,
-				'updated_at' => current_time( 'mysql', true ),
-			],
-			[ 'id' => $log_id ],
-			[ '%s', '%s' ],
-			[ '%d' ]
-		);
-	}
-
-	private function save_event( int $log_id, string $event_type, array $event_data ): void {
-		$raw_occurred_ts = $event_data['timestamp'] ?? null;
-		$occurred_at     = is_numeric( $raw_occurred_ts )
-			? gmdate( 'Y-m-d H:i:s', (int) $raw_occurred_ts )
-			: current_time( 'mysql', true );
-
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
-		$this->wpdb->insert(
-			$this->tables['events'],
-			[
-				'email_log_id' => $log_id,
-				'event_type'   => $event_type,
-				'event_data'   => wp_json_encode( $event_data ),
-				'occurred_at'  => $occurred_at,
-				'created_at'   => current_time( 'mysql', true ),
-			],
-			[ '%d', '%s', '%s', '%s', '%s' ]
-		);
+		$this->email_repository->update_status( $log_id, $new_status->value );
 	}
 
 	private function verify_signature( array $payload ): bool {

@@ -23,13 +23,17 @@ final class Schema {
 	 */
 	const DB_VERSION = '1.1.0';
 
+	private \wpdb $wpdb;
+
+	public function __construct( \wpdb $wpdb ) {
+		$this->wpdb = $wpdb;
+	}
+
 	/**
 	 * Create or update database tables via dbDelta.
 	 */
 	public function create_tables(): void {
-		// phpcs:ignore Generic.Commenting.DocComment.MissingShort -- Declares type of WordPress $wpdb global.
-		/** @var \wpdb $wpdb WordPress database instance. */
-		global $wpdb;
+		$wpdb = $this->wpdb;
 
 		$charset_collate = $wpdb->get_charset_collate();
 		$table_logs      = $wpdb->prefix . Constants::TABLE_LOGS;
@@ -89,9 +93,7 @@ final class Schema {
 	 * Drop database tables (used on uninstall).
 	 */
 	public function drop_tables(): void {
-		// phpcs:ignore Generic.Commenting.DocComment.MissingShort -- Declares type of WordPress $wpdb global.
-		/** @var \wpdb $wpdb WordPress database instance. */
-		global $wpdb;
+		$wpdb = $this->wpdb;
 
 		$table_logs   = $wpdb->prefix . Constants::TABLE_LOGS;
 		$table_events = $wpdb->prefix . Constants::TABLE_EVENTS;

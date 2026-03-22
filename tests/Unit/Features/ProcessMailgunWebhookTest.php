@@ -8,6 +8,8 @@
 namespace MailChronicle\Tests\Unit\Features;
 
 use MailChronicle\Tests\TestCase;
+use MailChronicle\Common\Repository\EmailRepositoryInterface;
+use MailChronicle\Common\Repository\ProviderEventRepositoryInterface;
 use MailChronicle\Features\ProcessMailgunWebhook\ProcessMailgunWebhook;
 use Mockery;
 
@@ -30,7 +32,9 @@ class ProcessMailgunWebhookTest extends TestCase {
 	public function test_handle_returns_false_when_signature_invalid() {
 		$GLOBALS['test_options'] = array( 'mailgun_api_key' => 'test-key' );
 
-		$handler = $this->create_handler();
+		$email_repository = Mockery::mock( EmailRepositoryInterface::class );
+		$event_repository = Mockery::mock( ProviderEventRepositoryInterface::class );
+		$handler          = new ProcessMailgunWebhook( $email_repository, $event_repository );
 
 		$payload = array(
 			'signature'  => array(
@@ -57,7 +61,9 @@ class ProcessMailgunWebhookTest extends TestCase {
 	 * Test handle returns false when event data is missing
 	 */
 	public function test_handle_returns_false_when_event_data_missing() {
-		$handler = $this->create_handler();
+		$email_repository = Mockery::mock( EmailRepositoryInterface::class );
+		$event_repository = Mockery::mock( ProviderEventRepositoryInterface::class );
+		$handler          = new ProcessMailgunWebhook( $email_repository, $event_repository );
 
 		$payload = array(
 			'signature' => array(
@@ -76,7 +82,9 @@ class ProcessMailgunWebhookTest extends TestCase {
 	 * Test handle returns false when message ID is missing
 	 */
 	public function test_handle_returns_false_when_message_id_missing() {
-		$handler = $this->create_handler();
+		$email_repository = Mockery::mock( EmailRepositoryInterface::class );
+		$event_repository = Mockery::mock( ProviderEventRepositoryInterface::class );
+		$handler          = new ProcessMailgunWebhook( $email_repository, $event_repository );
 
 		$payload = array(
 			'signature'  => array(
@@ -96,7 +104,7 @@ class ProcessMailgunWebhookTest extends TestCase {
 	}
 
 	/**
-	 * Test handle processes valid webhook
+	 * Test handle processes valid webhook for a new message (not in DB)
 	 */
 	public function test_handle_processes_valid_webhook() {
 		$timestamp = (string) time();
@@ -108,36 +116,34 @@ class ProcessMailgunWebhookTest extends TestCase {
 			array( 'mailgun_api_key' => $api_key )
 		);
 
-		$wpdb    = $this->create_mock_wpdb();
-		$handler = $this->create_handler_with_wpdb( $wpdb );
+		$email_repository = Mockery::mock( EmailRepositoryInterface::class );
+		$event_repository = Mockery::mock( ProviderEventRepositoryInterface::class );
 
-		// Calculate valid signature.
+		// find_or_create_log: message not in DB → save new log.
+		$email_repository->shouldReceive( 'find_id_by_provider_message_id' )
+			->once()
+			->andReturn( null );
+
+		$email_repository->shouldReceive( 'save' )
+			->once()
+			->andReturn( 123 );
+
+		// maybe_update_status: 'delivered' maps to Email_Status::Delivered.
+		$email_repository->shouldReceive( 'get_status' )
+			->once()
+			->with( 123 )
+			->andReturn( 'pending' );
+
+		$email_repository->shouldReceive( 'update_status' )
+			->once();
+
+		// save_event via event repository.
+		$event_repository->shouldReceive( 'save' )
+			->once()
+			->andReturn( 1 );
+
 		$signature = hash_hmac( 'sha256', $timestamp . $token, $api_key );
-
-		$wpdb->shouldReceive( 'prepare' )
-			->andReturnUsing(
-				function ( $query, $values ) {
-					return $query;
-				}
-			);
-
-		// get_var called twice: first to find by provider_message_id (null = not found),
-		// second by maybe_update_status to check current status (returns 'pending').
-		$wpdb->shouldReceive( 'get_var' )
-			->twice()
-			->andReturn( null, 'pending' );
-
-		// insert: create the log row.
-		$wpdb->insert_id = 123;
-		$wpdb->shouldReceive( 'insert' )
-			->twice()
-			->andReturn( 1 );
-
-		// update: maybe_update_status skipped when get_var returns null for id lookup.
-		// (status check uses get_var too, but since we inserted a new row the status
-		//  upgrade path calls update once).
-		$wpdb->shouldReceive( 'update' )
-			->andReturn( 1 );
+		$handler   = new ProcessMailgunWebhook( $email_repository, $event_repository );
 
 		$payload = array(
 			'signature'  => array(
@@ -162,7 +168,7 @@ class ProcessMailgunWebhookTest extends TestCase {
 	}
 
 	/**
-	 * Test handle returns false when email not found
+	 * Test handle returns false when insert fails (no log ID)
 	 */
 	public function test_handle_returns_false_when_email_not_found() {
 		$timestamp = (string) time();
@@ -174,29 +180,20 @@ class ProcessMailgunWebhookTest extends TestCase {
 			array( 'mailgun_api_key' => $api_key )
 		);
 
-		$wpdb    = $this->create_mock_wpdb();
-		$handler = $this->create_handler_with_wpdb( $wpdb );
+		$email_repository = Mockery::mock( EmailRepositoryInterface::class );
+		$event_repository = Mockery::mock( ProviderEventRepositoryInterface::class );
 
-		$signature = hash_hmac( 'sha256', $timestamp . $token, $api_key );
-
-		$wpdb->shouldReceive( 'prepare' )
-			->andReturnUsing(
-				function ( $query, $values ) {
-					return $query;
-				}
-			);
-
-		// get_var: find by provider_message_id — not found.
-		// get_var: insert fails, so insert_id is 0, returns null.
-		$wpdb->shouldReceive( 'get_var' )
+		// Not found in DB, and insert fails.
+		$email_repository->shouldReceive( 'find_id_by_provider_message_id' )
 			->once()
 			->andReturn( null );
 
-		// insert fails — simulates DB error returning null log id.
-		$wpdb->insert_id = 0;
-		$wpdb->shouldReceive( 'insert' )
+		$email_repository->shouldReceive( 'save' )
 			->once()
 			->andReturn( false );
+
+		$signature = hash_hmac( 'sha256', $timestamp . $token, $api_key );
+		$handler   = new ProcessMailgunWebhook( $email_repository, $event_repository );
 
 		$payload = array(
 			'signature'  => array(
@@ -218,37 +215,4 @@ class ProcessMailgunWebhookTest extends TestCase {
 
 		$this->assertFalse( $result );
 	}
-
-	/**
-	 * Create handler
-	 *
-	 * @return ProcessMailgunWebhook
-	 */
-	private function create_handler() {
-		$wpdb = $this->create_mock_wpdb();
-		return $this->create_handler_with_wpdb( $wpdb );
-	}
-
-	/**
-	 * Create handler with wpdb
-	 *
-	 * @param mixed $wpdb WordPress database.
-	 * @return ProcessMailgunWebhook
-	 */
-	private function create_handler_with_wpdb( $wpdb ) {
-		$GLOBALS['wpdb'] = $wpdb;
-
-		// Override get_option for this test.
-		if ( ! function_exists( 'MailChronicle\Tests\Unit\Features\get_option' ) ) {
-			eval(
-				'namespace MailChronicle\Tests\Unit\Features;
-				function get_option($option, $default = false) {
-					return $GLOBALS["test_options"] ?? $default;
-				}'
-			);
-		}
-
-		return new ProcessMailgunWebhook();
-	}
 }
-

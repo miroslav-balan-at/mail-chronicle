@@ -28,6 +28,10 @@ final class SyncScheduler {
 	 */
 	const CRON_HOOK = 'mail_chronicle_auto_sync';
 
+	private SyncFromMailgun $handler;
+
+	private ManageSettings $settings;
+
 	/**
 	 * Default sync interval key.
 	 */
@@ -97,6 +101,11 @@ final class SyncScheduler {
 		];
 	}
 
+	public function __construct( SyncFromMailgun $handler, ManageSettings $settings ) {
+		$this->handler  = $handler;
+		$this->settings = $settings;
+	}
+
 	/**
 	 * Register hooks (called once at plugin init, before any cron event fires).
 	 */
@@ -139,7 +148,7 @@ final class SyncScheduler {
 	 * Cron callback — reads current settings and runs the sync.
 	 */
 	public function run(): void {
-		$settings = ( new ManageSettings() )->get();
+		$settings = $this->settings->get();
 
 		if ( Email_Provider::Mailgun->value !== ( $settings['provider'] ?? '' ) ) {
 			return;
@@ -150,6 +159,6 @@ final class SyncScheduler {
 			return;
 		}
 
-		( new SyncFromMailgun() )->handle();
+		$this->handler->handle();
 	}
 }

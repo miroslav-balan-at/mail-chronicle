@@ -12,7 +12,7 @@ namespace MailChronicle\Features\ManageSettings;
 
 use MailChronicle\Common\Entities\Email_Provider;
 use MailChronicle\Common\Entities\Mailgun_Region;
-use MailChronicle\Features\DeleteEmail\DeleteEmail;
+use MailChronicle\Features\DeleteEmail\DeleteEmailInterface;
 use MailChronicle\Features\SyncFromMailgun\SyncFromMailgun;
 use MailChronicle\Features\SyncFromMailgun\SyncScheduler;
 
@@ -23,15 +23,13 @@ defined( 'ABSPATH' ) || exit;
  */
 final class SettingsPage {
 
-	/**
-	 * Settings domain handler.
-	 *
-	 * @var ManageSettings
-	 */
 	private ManageSettings $handler;
 
-	public function __construct() {
-		$this->handler = new ManageSettings();
+	private DeleteEmailInterface $delete_email;
+
+	public function __construct( ManageSettings $handler, DeleteEmailInterface $delete_email ) {
+		$this->handler      = $handler;
+		$this->delete_email = $delete_email;
 	}
 
 	public function add_menu_page(): void {
@@ -144,7 +142,7 @@ final class SettingsPage {
 	}
 
 	private function delete_all_logs(): void {
-		( new DeleteEmail() )->delete_all();
+		$this->delete_email->delete_all();
 		SyncFromMailgun::reset_cursor();
 
 		add_settings_error( 'mail_chronicle_settings', 'logs_deleted', __( 'All email logs have been deleted.', 'mail-chronicle' ), 'success' );

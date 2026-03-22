@@ -23,6 +23,15 @@ final class PurgeScheduler {
 	 */
 	const CRON_HOOK = 'mail_chronicle_purge_old_logs';
 
+	private PurgeOldLogs $handler;
+
+	private ManageSettings $settings;
+
+	public function __construct( PurgeOldLogs $handler, ManageSettings $settings ) {
+		$this->handler  = $handler;
+		$this->settings = $settings;
+	}
+
 	/**
 	 * Register hooks (called once at plugin init).
 	 */
@@ -55,9 +64,9 @@ final class PurgeScheduler {
 	 * Cron callback — reads current retention setting and runs the purge.
 	 */
 	public function run(): void {
-		$settings = ( new ManageSettings() )->get();
+		$settings = $this->settings->get();
 		$days     = is_numeric( $settings['log_retention_days'] ?? null ) ? (int) $settings['log_retention_days'] : ManageSettings::DEFAULT_RETENTION_DAYS;
 
-		( new PurgeOldLogs() )->handle( $days );
+		$this->handler->handle( $days );
 	}
 }

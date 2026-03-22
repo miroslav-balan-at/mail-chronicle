@@ -95,7 +95,7 @@ All endpoints require `manage_options` except the webhook endpoint (HMAC-SHA256 
 
 | Hook | Description |
 |------|-------------|
-| `mail_chronicle_before_email_logged` | Fires before email record is created |
+| `mail_chronicle_email_logging` | Fires immediately before the email row is inserted |
 | `mail_chronicle_after_email_logged` | Fires after email row is inserted |
 | `mail_chronicle_email_status_updated` | Fires after status is set to sent/failed |
 | `mail_chronicle_before_email_deleted` | Fires before single email is deleted |
@@ -164,18 +164,25 @@ Vertical Slice Architecture — each feature is fully self-contained in `src/Fea
 
 ```
 src/
-├── Common/           # Shared entities, DB schema, constants
+├── Common/
+│   ├── Database/         # Schema (dbDelta wrapper)
+│   ├── Entities/         # Email, ProviderEvent, enums
+│   ├── Infrastructure/   # Wpdb-backed repository implementations
+│   ├── Query/            # EmailQuery value object
+│   ├── Repository/       # EmailRepositoryInterface, ProviderEventRepositoryInterface
+│   └── WordPress/        # Activator, Deactivator, HooksLoader
 ├── Features/
-│   ├── LogEmail/
-│   ├── GetEmails/
 │   ├── DeleteEmail/
+│   ├── GetEmails/
+│   ├── LogEmail/
 │   ├── ManageSettings/
 │   ├── ProcessMailgunWebhook/
-│   ├── SyncFromMailgun/
-│   └── PurgeOldLogs/
+│   ├── PurgeOldLogs/
+│   ├── Sync/
+│   └── SyncFromMailgun/
 ├── Plugin.php
 ├── ServiceContainer.php
-└── ServiceProvider.php
+└── ServiceProvider.php   # Composition root — all wiring lives here
 ```
 
 Database tables: `{prefix}mail_chronicle_logs`, `{prefix}mail_chronicle_events`
