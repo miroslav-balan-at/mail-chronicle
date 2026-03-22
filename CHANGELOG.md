@@ -104,5 +104,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Support
 
-- GitHub Issues: https://github.com/your-repo/mail-chronicle/issues
+- GitHub Issues: https://github.com/miroslav-balan-at/mail-chronicle/issues
 - Email: miroslav@balan.at
