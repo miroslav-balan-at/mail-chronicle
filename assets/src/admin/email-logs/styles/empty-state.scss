@@ -1,0 +1,199 @@
+/**
+ * Empty State Styles
+ *
+ * Beautiful, modern empty state design following WordPress and UI/UX best practices
+ */
+
+// Table header actions
+.email-logs-table-wrapper .table-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	margin-bottom: 16px;
+
+	.table-actions {
+		display: flex;
+		gap: 8px;
+	}
+}
+
+.mail-chronicle-empty-state {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	padding: 60px 40px;
+	text-align: center;
+	max-width: 800px;
+	margin: 0 auto;
+	min-height: 400px;
+
+	.empty-state-icon {
+		margin-bottom: 24px;
+		opacity: 0.3;
+		color: #2271b1;
+		
+		svg {
+			width: 80px;
+			height: 80px;
+		}
+	}
+
+	.empty-state-title {
+		font-size: 24px;
+		font-weight: 600;
+		color: #1d2327;
+		margin: 0 0 12px 0;
+		line-height: 1.4;
+	}
+
+	.empty-state-description {
+		font-size: 16px;
+		color: #646970;
+		margin: 0 0 32px 0;
+		line-height: 1.6;
+		max-width: 600px;
+	}
+
+	.empty-state-steps {
+		display: flex;
+		flex-direction: column;
+		gap: 24px;
+		margin: 32px 0;
+		width: 100%;
+		max-width: 600px;
+	}
+
+	.empty-state-step {
+		display: flex;
+		align-items: flex-start;
+		text-align: left;
+		padding: 20px;
+		background: #f6f7f7;
+		border-radius: 8px;
+		border-left: 4px solid #2271b1;
+		transition: all 0.2s ease;
+
+		&:hover {
+			background: #f0f0f1;
+			transform: translateX(4px);
+		}
+
+		.step-number {
+			flex-shrink: 0;
+			width: 32px;
+			height: 32px;
+			background: #2271b1;
+			color: white;
+			border-radius: 50%;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			font-weight: 600;
+			font-size: 16px;
+			margin-right: 16px;
+		}
+
+		.step-content {
+			flex: 1;
+
+			h3 {
+				margin: 0 0 8px 0;
+				font-size: 16px;
+				font-weight: 600;
+				color: #1d2327;
+			}
+
+			p {
+				margin: 0;
+				font-size: 14px;
+				color: #646970;
+				line-height: 1.5;
+			}
+		}
+	}
+
+	.empty-state-actions {
+		display: flex;
+		gap: 12px;
+		margin-top: 24px;
+		flex-wrap: wrap;
+		justify-content: center;
+
+		.components-button {
+			min-height: 40px;
+			padding: 0 24px;
+			font-size: 14px;
+		}
+	}
+
+	.empty-state-help {
+		margin-top: 40px;
+		padding-top: 24px;
+		border-top: 1px solid #dcdcde;
+		max-width: 600px;
+
+		p {
+			margin: 0;
+			font-size: 14px;
+			color: #646970;
+			line-height: 1.6;
+		}
+
+		a {
+			color: #2271b1;
+			text-decoration: none;
+			font-weight: 500;
+
+			&:hover {
+				color: #135e96;
+				text-decoration: underline;
+			}
+		}
+	}
+}
+
+// Responsive design
+@media (max-width: 782px) {
+	.mail-chronicle-empty-state {
+		padding: 40px 20px;
+		min-height: 300px;
+
+		.empty-state-icon svg {
+			width: 60px;
+			height: 60px;
+		}
+
+		.empty-state-title {
+			font-size: 20px;
+		}
+
+		.empty-state-description {
+			font-size: 14px;
+		}
+
+		.empty-state-steps {
+			gap: 16px;
+		}
+
+		.empty-state-step {
+			padding: 16px;
+			flex-direction: column;
+
+			.step-number {
+				margin-right: 0;
+				margin-bottom: 12px;
+			}
+		}
+
+		.empty-state-actions {
+			flex-direction: column;
+			width: 100%;
+
+			.components-button {
+				width: 100%;
+			}
+		}
+	}
+}
+

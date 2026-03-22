@@ -1,0 +1,143 @@
+/* ── Webhook setup card ── */
+.mc-setup-card {
+	display: flex;
+	align-items: flex-start;
+	gap: 12px;
+	padding: 14px 16px;
+	border-radius: 6px;
+	margin: 12px 0 0;
+	max-width: 680px;
+	font-size: 13px;
+	line-height: 1.5;
+}
+.mc-setup-card p { margin: 4px 0 0; }
+.mc-setup-card--info    { background: #f0f6fc; border: 1px solid #c3d9f0; }
+.mc-setup-card--warning { background: #fef9ec; border: 1px solid #f0d080; }
+.mc-setup-card__icon { font-size: 18px; flex-shrink: 0; line-height: 1.3; }
+
+/* ── Section header ── */
+.mc-setup-header { margin: 28px 0 20px; max-width: 680px; }
+.mc-setup-header h2 { margin: 4px 0 6px; font-size: 18px; }
+.mc-setup-header p  { color: #666; margin: 0; }
+.mc-setup-header__badge {
+	display: inline-block;
+	background: #ff6f00;
+	color: #fff;
+	font-size: 11px;
+	font-weight: 600;
+	letter-spacing: .04em;
+	text-transform: uppercase;
+	padding: 2px 8px;
+	border-radius: 3px;
+}
+
+/* ── Steps ── */
+.mc-steps { display: flex; flex-direction: column; gap: 0; max-width: 680px; }
+.mc-step  { display: flex; gap: 20px; position: relative; padding-bottom: 28px; }
+.mc-step:last-child { padding-bottom: 0; }
+
+/* Connector line */
+.mc-step:not(:last-child)::before {
+	content: '';
+	position: absolute;
+	left: 17px;
+	top: 36px;
+	bottom: 0;
+	width: 2px;
+	background: #e0e0e0;
+}
+
+.mc-step__number {
+	flex-shrink: 0;
+	width: 36px;
+	height: 36px;
+	border-radius: 50%;
+	background: #2271b1;
+	color: #fff;
+	font-weight: 700;
+	font-size: 15px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	position: relative;
+	z-index: 1;
+}
+.mc-step__body { flex: 1; padding-top: 6px; }
+.mc-step__body h3 { margin: 0 0 8px; font-size: 14px; font-weight: 600; }
+.mc-step__body p  { margin: 0 0 10px; color: #444; font-size: 13px; line-height: 1.5; }
+
+/* ── URL row ── */
+.mc-url-row {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	background: #f6f7f7;
+	border: 1px solid #ddd;
+	border-radius: 6px;
+	padding: 10px 12px;
+}
+.mc-url-code {
+	flex: 1;
+	font-size: 12px;
+	background: none;
+	border: none;
+	padding: 0;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	color: #1d4ed8;
+}
+.mc-copy-btn {
+	flex-shrink: 0;
+	display: inline-flex;
+	align-items: center;
+	gap: 5px;
+	background: #fff;
+	border: 1px solid #c3c4c7;
+	border-radius: 4px;
+	padding: 5px 10px;
+	font-size: 12px;
+	font-weight: 500;
+	cursor: pointer;
+	color: #2271b1;
+	transition: background .15s, border-color .15s;
+}
+.mc-copy-btn:hover { background: #f0f6fc; border-color: #2271b1; }
+.mc-copy-btn--copied { color: #00a32a; border-color: #00a32a; background: #f0fdf4; }
+.mc-copy-btn__icon { font-size: 14px; }
+
+/* ── Event tags ── */
+.mc-event-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 2px; }
+.mc-tag {
+	background: #f0f0f1;
+	border: 1px solid #ddd;
+	border-radius: 4px;
+	padding: 3px 9px;
+	font-size: 12px;
+	font-family: monospace;
+	color: #333;
+}
+
+/* ── Maintenance tab ── */
+.mc-maintenance h2 { margin-top: 24px; }
+.mc-danger-box {
+	margin-top: 16px;
+	padding: 20px 24px;
+	border: 1px solid #d63638;
+	border-radius: 4px;
+	background: #fcf0f1;
+	max-width: 600px;
+}
+.mc-danger-box h3 { margin-top: 0; color: #d63638; }
+.mc-danger-box p  { margin-bottom: 16px; }
+.button-danger {
+	background: #d63638 !important;
+	border-color: #b32d2e !important;
+	color: #fff !important;
+}
+.button-danger:hover,
+.button-danger:focus {
+	background: #b32d2e !important;
+	border-color: #8c2324 !important;
+	color: #fff !important;
+}

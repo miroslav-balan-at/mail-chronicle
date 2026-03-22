@@ -1,0 +1,157 @@
+# German translation for Mail Chronicle
+# Copyright (C) 2026 Miroslav Balan
+# This file is distributed under the GPL v2 or later.
+msgid ""
+msgstr ""
+"Project-Id-Version: Mail Chronicle 1.0.0\n"
+"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/mail-chronicle\n"
+"Last-Translator: Miroslav Balan <miroslav@balan.at>\n"
+"Language-Team: German\n"
+"Language: de_DE\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"POT-Creation-Date: 2026-03-19T17:48:19+00:00\n"
+"PO-Revision-Date: 2026-03-19 18:00+0000\n"
+"X-Generator: Poedit 3.0\n"
+"X-Domain: mail-chronicle\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: mail-chronicle.php
+#: src/Features/ManageSettings/SettingsPage.php:35
+#: src/Features/ManageSettings/SettingsPage.php:36
+msgid "Mail Chronicle"
+msgstr "Mail Chronicle"
+
+#: mail-chronicle.php
+msgid "Professional email logging with multi-provider support (Mailgun, SendGrid, etc.), event tracking, and comprehensive admin interface"
+msgstr "Professionelles E-Mail-Logging mit Multi-Provider-Unterstützung (Mailgun, SendGrid, etc.), Event-Tracking und umfassender Admin-Oberfläche"
+
+#: src/Features/GetEmails/EmailLogsPage.php:22
+#: src/Features/GetEmails/EmailLogsPage.php:23
+#: src/Plugin.php:180
+msgid "Email Logs"
+msgstr "E-Mail-Protokolle"
+
+#: src/Features/ManageSettings/SettingsPage.php:46
+#: src/Features/ManageSettings/SettingsPage.php:47
+#: src/Plugin.php:181
+msgid "Settings"
+msgstr "Einstellungen"
+
+#: assets/src/admin/email-logs/components/EmptyState.jsx:44
+msgid "No emails logged yet"
+msgstr "Noch keine E-Mails protokolliert"
+
+#: assets/src/admin/email-logs/components/EmptyState.jsx:47
+msgid "Mail Chronicle will automatically log all outgoing emails from your WordPress site."
+msgstr "Mail Chronicle protokolliert automatisch alle ausgehenden E-Mails von Ihrer WordPress-Website."
+
+#: assets/src/admin/email-logs/components/EmptyState.jsx:54
+msgid "Enable Logging"
+msgstr "Protokollierung aktivieren"
+
+#: assets/src/admin/email-logs/components/EmptyState.jsx:55
+msgid "Make sure email logging is enabled in the plugin settings."
+msgstr "Stellen Sie sicher, dass die E-Mail-Protokollierung in den Plugin-Einstellungen aktiviert ist."
+
+#: assets/src/admin/email-logs/components/EmptyState.jsx:62
+msgid "Send a Test Email"
+msgstr "Test-E-Mail senden"
+
+#: assets/src/admin/email-logs/components/EmptyState.jsx:63
+msgid "Trigger any WordPress email (password reset, comment notification, etc.) to see it logged here."
+msgstr "Lösen Sie eine beliebige WordPress-E-Mail aus (Passwort zurücksetzen, Kommentarbenachrichtigung usw.), um sie hier protokolliert zu sehen."
+
+#: assets/src/admin/email-logs/components/EmptyState.jsx:70
+msgid "Configure Provider (Optional)"
+msgstr "Anbieter konfigurieren (Optional)"
+
+#: assets/src/admin/email-logs/components/EmptyState.jsx:71
+msgid "Connect Mailgun for advanced tracking like delivery status, opens, and clicks."
+msgstr "Verbinden Sie Mailgun für erweitertes Tracking wie Zustellstatus, Öffnungen und Klicks."
+
+#: assets/src/admin/email-logs/components/EmptyState.jsx:81
+msgid "Go to Settings"
+msgstr "Zu den Einstellungen"
+
+#: assets/src/admin/email-logs/components/EmptyState.jsx:89
+msgid "Send Test Email"
+msgstr "Test-E-Mail senden"
+
+#: assets/src/admin/email-logs/components/EmptyState.jsx:95
+msgid "Need help?"
+msgstr "Benötigen Sie Hilfe?"
+
+#: assets/src/admin/email-logs/components/EmptyState.jsx:97
+msgid "Check out the"
+msgstr "Schauen Sie sich die"
+
+#: assets/src/admin/email-logs/components/EmptyState.jsx:100
+msgid "documentation"
+msgstr "Dokumentation"
+
+#: assets/src/admin/email-logs/components/EmptyState.jsx:103
+msgid "or"
+msgstr "oder"
+
+#: assets/src/admin/email-logs/components/EmptyState.jsx:106
+msgid "report an issue"
+msgstr "melden Sie ein Problem"
+
+#: assets/src/admin/email-logs/components/EmptyState.jsx:20
+msgid "No emails match your filters"
+msgstr "Keine E-Mails entsprechen Ihren Filtern"
+
+#: assets/src/admin/email-logs/components/EmptyState.jsx:23
+msgid "Try adjusting your search criteria or filters to find what you're looking for."
+msgstr "Versuchen Sie, Ihre Suchkriterien oder Filter anzupassen, um das Gesuchte zu finden."
+
+#: assets/src/admin/email-logs/components/EmptyState.jsx:30
+msgid "Clear All Filters"
+msgstr "Alle Filter löschen"
+
+#: assets/src/admin/email-logs/EmailLogsApp.jsx:90
+msgid "Failed to delete email"
+msgstr "E-Mail konnte nicht gelöscht werden"
+
+#: assets/src/admin/email-logs/components/EmailLogsTable.jsx:73
+msgid "Total:"
+msgstr "Gesamt:"
+
+#: assets/src/admin/email-logs/components/EmailLogsTable.jsx:78
+msgid "Refresh"
+msgstr "Aktualisieren"
+
+#: assets/src/admin/email-logs/components/EmailLogsTable.jsx:88
+msgid "Recipient"
+msgstr "Empfänger"
+
+#: assets/src/admin/email-logs/components/EmailLogsTable.jsx:89
+msgid "Subject"
+msgstr "Betreff"
+
+#: assets/src/admin/email-logs/components/EmailLogsTable.jsx:90
+msgid "Provider"
+msgstr "Anbieter"
+
+#: assets/src/admin/email-logs/components/EmailLogsTable.jsx:91
+msgid "Status"
+msgstr "Status"
+
+#: assets/src/admin/email-logs/components/EmailLogsTable.jsx:92
+msgid "Sent At"
+msgstr "Gesendet am"
+
+#: assets/src/admin/email-logs/components/EmailLogsTable.jsx:93
+msgid "Actions"
+msgstr "Aktionen"
+
+#: assets/src/admin/email-logs/components/EmailLogsTable.jsx:113
+msgid "View"
+msgstr "Ansehen"
+
+#: assets/src/admin/email-logs/components/EmailLogsTable.jsx:119
+msgid "Delete"
+msgstr "Löschen"
+

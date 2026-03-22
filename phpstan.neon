@@ -1,0 +1,10 @@
+parameters:
+    level: 10
+    paths:
+        - src/
+    phpVersion: 80100
+    bootstrapFiles:
+        - tests/bootstrap-phpstan.php
+    treatPhpDocTypesAsCertain: false
+    ignoreErrors:
+        - identifier: missingType.iterableValue

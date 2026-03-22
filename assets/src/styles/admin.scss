@@ -1,0 +1,335 @@
+/**
+ * Mail Chronicle Admin Styles
+ *
+ * Uses WordPress admin CSS variables where possible so the UI
+ * respects the active admin colour scheme.
+ */
+
+@import '../admin/email-logs/styles/empty-state.scss';
+
+// ─── Page wrapper ────────────────────────────────────────────────────────────
+
+.mail-chronicle-email-logs {
+	margin-top: 16px;
+
+	// Spacing between the filters card and the table card
+	> * + * {
+		margin-top: 16px;
+	}
+
+	.mail-chronicle-loading {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 12px;
+		padding: 48px 24px;
+		color: #50575e;
+	}
+}
+
+// ─── Toolbar (above the table) ────────────────────────────────────────────────
+
+.mc-toolbar {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	flex-wrap: wrap;
+	gap: 8px;
+	margin-bottom: 12px;
+
+	&__count {
+		margin: 0;
+		font-weight: 600;
+		color: #1e1e1e;
+	}
+
+	&__actions {
+		display: flex;
+		gap: 8px;
+		flex-wrap: wrap;
+	}
+}
+
+// ─── Table ───────────────────────────────────────────────────────────────────
+
+.mc-table-wrapper {
+
+	.mc-cell-truncate {
+		display: block;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.mc-subject-link {
+		// Override WP Button link padding so it sits flush in the cell
+		padding: 0 !important;
+		height: auto !important;
+		text-align: left;
+		text-decoration: none;
+
+		&:hover,
+		&:focus {
+			text-decoration: underline;
+		}
+	}
+}
+
+// ─── Status badges ────────────────────────────────────────────────────────────
+// Uses WP admin colour variables; falls back to explicit colours for browsers
+// that don't support custom properties.
+
+.mc-status-badge {
+	display: inline-block;
+	padding: 2px 8px;
+	border-radius: 10px;        // pill shape
+	font-size: 11px;
+	font-weight: 600;
+	line-height: 18px;
+	letter-spacing: 0.03em;
+	text-transform: uppercase;
+	white-space: nowrap;
+
+	&--pending {
+		background: #f0f0f1;
+		color: #50575e;
+	}
+
+	&--sent {
+		background: #e8f0fb;
+		color: #2271b1;
+	}
+
+	&--delivered {
+		background: #edfaef;
+		color: #00a32a;
+	}
+
+	&--opened {
+		background: #e5f5fa;
+		color: #007cba;
+	}
+
+	&--clicked {
+		background: #f0e5ff;
+		color: #6d3fc0;
+	}
+
+	&--failed,
+	&--bounced {
+		background: #fcf0f1;
+		color: #d63638;
+	}
+
+	&--complained {
+		background: #fff3e5;
+		color: #b45309;
+	}
+}
+
+// ─── Pagination ───────────────────────────────────────────────────────────────
+
+.tablenav.bottom {
+	margin-top: 8px;
+
+	.tablenav-pages {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+
+		.displaying-num {
+			margin-right: 8px;
+			color: #50575e;
+			font-size: 13px;
+		}
+
+		.pagination-links {
+			display: flex;
+			align-items: center;
+			gap: 2px;
+
+			// Override WP Button link styles to look like pagination buttons
+			.components-button {
+				min-width: 30px;
+				height: 30px;
+				padding: 0 6px;
+				font-size: 18px;
+				line-height: 28px;
+				text-align: center;
+				color: #2271b1;
+
+				&:disabled {
+					color: #a7aaad;
+					cursor: default;
+					pointer-events: none;
+				}
+			}
+		}
+
+		.paging-input {
+			font-size: 13px;
+			padding: 0 4px;
+			color: #1e1e1e;
+		}
+	}
+}
+
+// ─── Delete confirmation modal ────────────────────────────────────────────────
+
+.mc-confirm-modal {
+
+	p {
+		margin-top: 0;
+		line-height: 1.5;
+	}
+
+	&__subject {
+		padding: 8px 12px;
+		background: #f6f7f7;
+		border-left: 3px solid #ddd;
+		border-radius: 2px;
+		font-size: 13px;
+	}
+
+	&__actions {
+		display: flex;
+		gap: 8px;
+		margin-top: 20px;
+		padding-top: 16px;
+		border-top: 1px solid #ddd;
+	}
+}
+
+// ─── Email detail modal ────────────────────────────────────────────────────────
+
+.mc-detail-modal {
+
+	// Give the modal content area consistent padding
+	.components-modal__content {
+		padding: 0 24px 24px;
+	}
+
+	// Tab content pane
+	&__tab {
+		padding-top: 20px;
+	}
+
+	&__loading {
+		display: flex;
+		justify-content: center;
+		padding: 32px 0;
+	}
+
+	&__empty {
+		padding-top: 32px;
+		text-align: center;
+		color: #50575e;
+
+		p { margin: 0 0 8px; }
+		.description { font-size: 12px; }
+	}
+
+	&__empty-text {
+		color: #50575e;
+	}
+
+	&__section-title {
+		font-size: 13px;
+		font-weight: 600;
+		text-transform: uppercase;
+		letter-spacing: 0.04em;
+		color: #50575e;
+		margin: 24px 0 8px;
+
+		&:first-child {
+			margin-top: 0;
+		}
+	}
+}
+
+// ─── Detail list (definition list used in Details tab) ────────────────────────
+
+.mc-detail-list {
+	display: grid;
+	grid-template-columns: 1fr;
+	gap: 0;
+	margin: 0;
+
+	&__row {
+		display: grid;
+		grid-template-columns: 180px 1fr;
+		gap: 12px;
+		padding: 10px 0;
+		border-bottom: 1px solid #f0f0f1;
+		align-items: baseline;
+
+		&:last-child {
+			border-bottom: none;
+		}
+
+		// When content is very wide (e.g. headers), stack vertically
+		&--full {
+			grid-template-columns: 1fr;
+			gap: 6px;
+		}
+	}
+
+	dt {
+		font-weight: 600;
+		font-size: 13px;
+		color: #1e1e1e;
+	}
+
+	dd {
+		margin: 0;
+		font-size: 13px;
+		color: #3c434a;
+		word-break: break-word;
+	}
+
+	&__mono {
+		font-family: monospace;
+		font-size: 12px;
+		color: #50575e;
+	}
+
+	&__pre {
+		margin: 0;
+		padding: 10px 12px;
+		background: #f6f7f7;
+		border: 1px solid #e0e0e0;
+		border-radius: 3px;
+		font-size: 11px;
+		line-height: 1.6;
+		overflow-x: auto;
+		white-space: pre-wrap;
+		word-break: break-all;
+	}
+}
+
+// ─── Email content preview ────────────────────────────────────────────────────
+
+.mc-email-html {
+	border: 1px solid #e0e0e0;
+	border-radius: 3px;
+	padding: 16px;
+	background: #fff;
+	max-height: 400px;
+	overflow-y: auto;
+	font-size: 13px;
+	line-height: 1.6;
+}
+
+.mc-email-plain {
+	margin: 0;
+	padding: 16px;
+	background: #f6f7f7;
+	border: 1px solid #e0e0e0;
+	border-radius: 3px;
+	font-size: 12px;
+	line-height: 1.7;
+	white-space: pre-wrap;
+	word-break: break-word;
+	max-height: 400px;
+	overflow-y: auto;
+}

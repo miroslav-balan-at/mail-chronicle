@@ -1,0 +1,84 @@
+<?xml version="1.0"?>
+<ruleset name="Mail Chronicle">
+	<description>WordPress Coding Standards for Mail Chronicle</description>
+
+	<arg name="extensions" value="php"/>
+	<file>.</file>
+	<arg value="ps"/>
+
+	<exclude-pattern>*/vendor/*</exclude-pattern>
+	<exclude-pattern>*/node_modules/*</exclude-pattern>
+	<exclude-pattern>*/assets/build/*</exclude-pattern>
+	<exclude-pattern>*/tests/*</exclude-pattern>
+
+	<rule ref="WordPress">
+		<!-- Allow short array syntax -->
+		<exclude name="Generic.Arrays.DisallowShortArraySyntax"/>
+		<exclude name="Universal.Arrays.DisallowShortArraySyntax"/>
+
+		<!--
+			ServiceProvider closures always receive the container argument because
+			the ServiceContainer::register() interface requires a callable($container).
+			These closures intentionally do not use the argument when the service
+			has no dependencies; suppressing the unused-parameter warning here is
+			correct and expected for this DI pattern.
+		-->
+		<exclude name="Generic.CodeAnalysis.UnusedFunctionParameter.Found"/>
+
+		<!--
+			This plugin uses PSR-4 autoloading (Composer) which requires PascalCase
+			filenames matching the class name exactly. WordPress filename conventions
+			are incompatible with PSR-4 autoloading and are excluded here.
+			Reference: https://developer.wordpress.org/news/2025/09/implementing-namespaces-and-coding-standards-in-wordpress-plugin-development/
+		-->
+		<exclude name="WordPress.Files.FileName.InvalidClassFileName"/>
+		<exclude name="WordPress.Files.FileName.NotHyphenatedLowercase"/>
+
+		<!--
+			Exception messages are developer-facing (logged, not rendered to browser).
+			Escaping at throw site corrupts log files and CLI output.
+		-->
+		<exclude name="WordPress.Security.EscapeOutput.ExceptionNotEscaped"/>
+
+		<!--
+			This plugin uses native PHP 8.1 parameter, return, and property types
+			instead of PHPDoc tags. These sniffs require docblocks that duplicate
+			information already expressed by native type declarations.
+		-->
+		<exclude name="Squiz.Commenting.FunctionComment"/>
+		<exclude name="Squiz.Commenting.VariableComment"/>
+	</rule>
+
+	<!--
+		Check for PHP cross-version compatibility. Plugin requires PHP 8.1+.
+		PHPCompatibility 9.3.5 does not correctly support PHP 8.1 enums —
+		it fires false positives for $this and self inside enum methods.
+		These are suppressed until PHPCompatibility 10.x is stable.
+		Reference: https://github.com/PHPCompatibility/PHPCompatibility/issues/1343
+	-->
+	<config name="testVersion" value="8.1-"/>
+	<rule ref="PHPCompatibility">
+		<exclude name="PHPCompatibility.Variables.ForbiddenThisUseContexts.OutsideObjectContext"/>
+		<exclude name="PHPCompatibility.FunctionDeclarations.NewParamTypeDeclarations.SelfOutsideClassScopeFound"/>
+	</rule>
+
+	<config name="minimum_supported_wp_version" value="6.0"/>
+
+	<rule ref="WordPress.WP.I18n">
+		<properties>
+			<property name="text_domain" type="array">
+				<element value="mail-chronicle"/>
+			</property>
+		</properties>
+	</rule>
+
+	<rule ref="WordPress.NamingConventions.PrefixAllGlobals">
+		<properties>
+			<property name="prefixes" type="array">
+				<element value="mail_chronicle"/>
+				<element value="MAIL_CHRONICLE"/>
+				<element value="MailChronicle"/>
+			</property>
+		</properties>
+	</rule>
+</ruleset>

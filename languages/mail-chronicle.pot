@@ -1,0 +1,443 @@
+# Copyright (C) 2026 Miroslav Balan
+# This file is distributed under the GPL v2 or later.
+msgid ""
+msgstr ""
+"Project-Id-Version: Mail Chronicle 1.0.0\n"
+"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/mail-chronicle\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"POT-Creation-Date: 2026-03-19T17:48:19+00:00\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"X-Generator: WP-CLI 2.12.0\n"
+"X-Domain: mail-chronicle\n"
+
+#. Plugin Name of the plugin
+#: mail-chronicle.php
+#: src/Features/ManageSettings/SettingsPage.php:35
+#: src/Features/ManageSettings/SettingsPage.php:36
+msgid "Mail Chronicle"
+msgstr ""
+
+#. Plugin URI of the plugin
+#. Author URI of the plugin
+#: mail-chronicle.php
+msgid "https://hygienemitsystem.at"
+msgstr ""
+
+#. Description of the plugin
+#: mail-chronicle.php
+msgid "Professional email logging with multi-provider support (Mailgun, SendGrid, etc.), event tracking, and comprehensive admin interface"
+msgstr ""
+
+#. Author of the plugin
+#: mail-chronicle.php
+msgid "Miroslav Balan"
+msgstr ""
+
+#. translators: %s: plugin name
+#: mail-chronicle.php:45
+#, php-format
+msgid "<strong>%s</strong> requires Composer dependencies. Please run <code>composer install</code> in the plugin directory."
+msgstr ""
+
+#: src/Features/GetEmails/EmailLogsController.php:141
+msgid "Email not found"
+msgstr ""
+
+#: src/Features/GetEmails/EmailLogsController.php:168
+#: assets/build/index.js:1
+#: assets/src/admin/email-logs/EmailLogsApp.jsx:90
+msgid "Failed to delete email"
+msgstr ""
+
+#: src/Features/GetEmails/EmailLogsPage.php:22
+#: src/Features/GetEmails/EmailLogsPage.php:23
+#: src/Plugin.php:180
+msgid "Email Logs"
+msgstr ""
+
+#: src/Features/GetEmails/EmailLogsPage.php:35
+#: src/Features/ManageSettings/SettingsPage.php:59
+msgid "You do not have sufficient permissions to access this page."
+msgstr ""
+
+#: src/Features/ManageSettings/SettingsPage.php:46
+#: src/Features/ManageSettings/SettingsPage.php:47
+#: src/Plugin.php:181
+msgid "Settings"
+msgstr ""
+
+#: src/Features/ManageSettings/SettingsPage.php:78
+#: assets/build/index.js:1
+#: assets/src/admin/email-logs/components/EmptyState.jsx:54
+msgid "Enable Logging"
+msgstr ""
+
+#: src/Features/ManageSettings/SettingsPage.php:82
+msgid "Enable email logging"
+msgstr ""
+
+#: src/Features/ManageSettings/SettingsPage.php:88
+msgid "Email Provider"
+msgstr ""
+
+#: src/Features/ManageSettings/SettingsPage.php:93
+msgid "WordPress (default)"
+msgstr ""
+
+#: src/Features/ManageSettings/SettingsPage.php:96
+#: assets/build/index.js:1
+#: assets/src/admin/email-logs/components/EmailFilters.jsx:66
+msgid "Mailgun"
+msgstr ""
+
+#: src/Features/ManageSettings/SettingsPage.php:99
+msgid "SendGrid (coming soon)"
+msgstr ""
+
+#: src/Features/ManageSettings/SettingsPage.php:107
+msgid "Mailgun API Key"
+msgstr ""
+
+#: src/Features/ManageSettings/SettingsPage.php:116
+msgid "Mailgun Domain"
+msgstr ""
+
+#: src/Features/ManageSettings/SettingsPage.php:125
+msgid "Mailgun Region"
+msgstr ""
+
+#: src/Features/ManageSettings/SettingsPage.php:130
+msgid "US"
+msgstr ""
+
+#: src/Features/ManageSettings/SettingsPage.php:133
+msgid "EU"
+msgstr ""
+
+#: src/Features/ManageSettings/SettingsPage.php:141
+msgid "Log Retention (days)"
+msgstr ""
+
+#: src/Features/ManageSettings/SettingsPage.php:145
+msgid "Number of days to keep email logs"
+msgstr ""
+
+#: src/Features/ManageSettings/SettingsPage.php:166
+msgid "Settings saved successfully."
+msgstr ""
+
+#: src/Features/ProcessMailgunWebhook/WebhookController.php:71
+msgid "Failed to process webhook"
+msgstr ""
+
+#: assets/build/index.js:1
+#: assets/src/admin/email-logs/components/EmailDetailModal.jsx:33
+msgid "Failed to fetch events"
+msgstr ""
+
+#: assets/build/index.js:1
+#: assets/src/admin/email-logs/components/EmailDetailModal.jsx:47
+msgid "Details"
+msgstr ""
+
+#: assets/build/index.js:1
+#: assets/src/admin/email-logs/components/EmailDetailModal.jsx:52
+msgid "Content"
+msgstr ""
+
+#: assets/build/index.js:1
+#: assets/src/admin/email-logs/components/EmailDetailModal.jsx:57
+msgid "Events"
+msgstr ""
+
+#: assets/build/index.js:1
+#: assets/src/admin/email-logs/components/EmailDetailModal.jsx:64
+#: assets/src/admin/email-logs/components/EmailLogsTable.jsx:115
+msgid "(no subject)"
+msgstr ""
+
+#: assets/build/index.js:1
+#: assets/src/admin/email-logs/components/EmailDetailModal.jsx:81
+#: assets/src/admin/email-logs/components/EmailLogsTable.jsx:97
+msgid "Recipient"
+msgstr ""
+
+#: assets/build/index.js:1
+#: assets/src/admin/email-logs/components/EmailDetailModal.jsx:85
+#: assets/src/admin/email-logs/components/EmailLogsTable.jsx:98
+msgid "Subject"
+msgstr ""
+
+#: assets/build/index.js:1
+#: assets/src/admin/email-logs/components/EmailDetailModal.jsx:89
+#: assets/src/admin/email-logs/components/EmailFilters.jsx:60
+#: assets/src/admin/email-logs/components/EmailLogsTable.jsx:99
+msgid "Provider"
+msgstr ""
+
+#: assets/build/index.js:1
+#: assets/src/admin/email-logs/components/EmailDetailModal.jsx:93
+#: assets/src/admin/email-logs/components/EmailFilters.jsx:42
+#: assets/src/admin/email-logs/components/EmailLogsTable.jsx:100
+msgid "Status"
+msgstr ""
+
+#: assets/build/index.js:1
+#: assets/src/admin/email-logs/components/EmailDetailModal.jsx:97
+msgid "Provider Message ID"
+msgstr ""
+
+#: assets/build/index.js:1
+#: assets/src/admin/email-logs/components/EmailDetailModal.jsx:101
+#: assets/src/admin/email-logs/components/EmailLogsTable.jsx:101
+msgid "Sent At"
+msgstr ""
+
+#: assets/build/index.js:1
+#: assets/src/admin/email-logs/components/EmailDetailModal.jsx:106
+msgid "Headers"
+msgstr ""
+
+#: assets/build/index.js:1
+#: assets/src/admin/email-logs/components/EmailDetailModal.jsx:114
+msgid "Attachments"
+msgstr ""
+
+#: assets/build/index.js:1
+#: assets/src/admin/email-logs/components/EmailDetailModal.jsx:127
+msgid "HTML Content"
+msgstr ""
+
+#: assets/build/index.js:1
+#: assets/src/admin/email-logs/components/EmailDetailModal.jsx:135
+msgid "Plain Text Content"
+msgstr ""
+
+#: assets/build/index.js:1
+#: assets/src/admin/email-logs/components/EmailDetailModal.jsx:153
+msgid "No events found"
+msgstr ""
+
+#: assets/build/index.js:1
+#: assets/src/admin/email-logs/components/EmailDetailModal.jsx:158
+msgid "Event Type"
+msgstr ""
+
+#: assets/build/index.js:1
+#: assets/src/admin/email-logs/components/EmailDetailModal.jsx:159
+msgid "Occurred At"
+msgstr ""
+
+#: assets/build/index.js:1
+#: assets/src/admin/email-logs/components/EmptyState.jsx:20
+msgid "No emails match your filters"
+msgstr ""
+
+#: assets/build/index.js:1
+#: assets/src/admin/email-logs/components/EmptyState.jsx:23
+msgid "Try adjusting your search criteria or filters to find what you're looking for."
+msgstr ""
+
+#: assets/build/index.js:1
+#: assets/src/admin/email-logs/components/EmptyState.jsx:30
+msgid "Clear All Filters"
+msgstr ""
+
+#: assets/build/index.js:1
+#: assets/src/admin/email-logs/components/EmptyState.jsx:44
+msgid "No emails logged yet"
+msgstr ""
+
+#: assets/build/index.js:1
+#: assets/src/admin/email-logs/components/EmptyState.jsx:47
+msgid "Mail Chronicle will automatically log all outgoing emails from your WordPress site."
+msgstr ""
+
+#: assets/build/index.js:1
+#: assets/src/admin/email-logs/components/EmptyState.jsx:55
+msgid "Make sure email logging is enabled in the plugin settings."
+msgstr ""
+
+#: assets/build/index.js:1
+#: assets/src/admin/email-logs/components/EmptyState.jsx:62
+msgid "Send a Test Email"
+msgstr ""
+
+#: assets/build/index.js:1
+#: assets/src/admin/email-logs/components/EmptyState.jsx:63
+msgid "Trigger any WordPress email (password reset, comment notification, etc.) to see it logged here."
+msgstr ""
+
+#: assets/build/index.js:1
+#: assets/src/admin/email-logs/components/EmptyState.jsx:70
+msgid "Configure Provider (Optional)"
+msgstr ""
+
+#: assets/build/index.js:1
+#: assets/src/admin/email-logs/components/EmptyState.jsx:71
+msgid "Connect Mailgun for advanced tracking like delivery status, opens, and clicks."
+msgstr ""
+
+#: assets/build/index.js:1
+#: assets/src/admin/email-logs/components/EmptyState.jsx:81
+msgid "Go to Settings"
+msgstr ""
+
+#: assets/build/index.js:1
+#: assets/src/admin/email-logs/components/EmptyState.jsx:89
+msgid "Send Test Email"
+msgstr ""
+
+#: assets/build/index.js:1
+#: assets/src/admin/email-logs/components/EmptyState.jsx:95
+msgid "Need help?"
+msgstr ""
+
+#: assets/build/index.js:1
+#: assets/src/admin/email-logs/components/EmptyState.jsx:97
+msgid "Check out the"
+msgstr ""
+
+#: assets/build/index.js:1
+#: assets/src/admin/email-logs/components/EmptyState.jsx:100
+msgid "documentation"
+msgstr ""
+
+#: assets/build/index.js:1
+#: assets/src/admin/email-logs/components/EmptyState.jsx:103
+msgid "or"
+msgstr ""
+
+#: assets/build/index.js:1
+#: assets/src/admin/email-logs/components/EmptyState.jsx:106
+msgid "report an issue"
+msgstr ""
+
+#: assets/build/index.js:1
+#: assets/src/admin/email-logs/components/EmailLogsTable.jsx:84
+msgid "Total:"
+msgstr ""
+
+#: assets/build/index.js:1
+#: assets/src/admin/email-logs/components/EmailLogsTable.jsx:90
+msgid "Refresh"
+msgstr ""
+
+#: assets/build/index.js:1
+#: assets/src/admin/email-logs/components/EmailLogsTable.jsx:102
+msgid "Actions"
+msgstr ""
+
+#: assets/build/index.js:1
+#: assets/src/admin/email-logs/components/EmailLogsTable.jsx:127
+msgid "Delete"
+msgstr ""
+
+#: assets/build/index.js:1
+#: assets/src/admin/email-logs/components/EmailLogsTable.jsx:140
+msgid "items"
+msgstr ""
+
+#: assets/build/index.js:1
+#: assets/src/admin/email-logs/components/EmailLogsTable.jsx:158
+msgid "of"
+msgstr ""
+
+#: assets/build/index.js:1
+#: assets/src/admin/email-logs/components/EmailFilters.jsx:33
+msgid "Search"
+msgstr ""
+
+#: assets/build/index.js:1
+#: assets/src/admin/email-logs/components/EmailFilters.jsx:36
+msgid "Search recipient or subject..."
+msgstr ""
+
+#: assets/build/index.js:1
+#: assets/src/admin/email-logs/components/EmailFilters.jsx:46
+msgid "All Statuses"
+msgstr ""
+
+#: assets/build/index.js:1
+#: assets/src/admin/email-logs/components/EmailFilters.jsx:47
+msgid "Pending"
+msgstr ""
+
+#: assets/build/index.js:1
+#: assets/src/admin/email-logs/components/EmailFilters.jsx:48
+msgid "Sent"
+msgstr ""
+
+#: assets/build/index.js:1
+#: assets/src/admin/email-logs/components/EmailFilters.jsx:49
+msgid "Delivered"
+msgstr ""
+
+#: assets/build/index.js:1
+#: assets/src/admin/email-logs/components/EmailFilters.jsx:50
+msgid "Opened"
+msgstr ""
+
+#: assets/build/index.js:1
+#: assets/src/admin/email-logs/components/EmailFilters.jsx:51
+msgid "Clicked"
+msgstr ""
+
+#: assets/build/index.js:1
+#: assets/src/admin/email-logs/components/EmailFilters.jsx:52
+msgid "Failed"
+msgstr ""
+
+#: assets/build/index.js:1
+#: assets/src/admin/email-logs/components/EmailFilters.jsx:53
+msgid "Bounced"
+msgstr ""
+
+#: assets/build/index.js:1
+#: assets/src/admin/email-logs/components/EmailFilters.jsx:64
+msgid "All Providers"
+msgstr ""
+
+#: assets/build/index.js:1
+#: assets/src/admin/email-logs/components/EmailFilters.jsx:65
+msgid "WordPress"
+msgstr ""
+
+#: assets/build/index.js:1
+#: assets/src/admin/email-logs/components/EmailFilters.jsx:67
+msgid "SendGrid"
+msgstr ""
+
+#: assets/build/index.js:1
+#: assets/src/admin/email-logs/components/EmailFilters.jsx:74
+msgid "From Date"
+msgstr ""
+
+#: assets/build/index.js:1
+#: assets/src/admin/email-logs/components/EmailFilters.jsx:83
+msgid "To Date"
+msgstr ""
+
+#: assets/build/index.js:1
+#: assets/src/admin/email-logs/components/EmailFilters.jsx:96
+msgid "Reset Filters"
+msgstr ""
+
+#: assets/build/index.js:1
+#: assets/src/admin/email-logs/EmailLogsApp.jsx:54
+msgid "Failed to fetch emails"
+msgstr ""
+
+#: assets/build/index.js:1
+#: assets/src/admin/email-logs/EmailLogsApp.jsx:131
+msgid "Loading emails..."
+msgstr ""
+
+#: assets/build/index.js:1
+#: assets/src/admin/email-logs/EmailLogsApp.jsx:77
+msgid "Are you sure you want to delete this email?"
+msgstr ""
