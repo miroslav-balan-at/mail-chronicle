@@ -10,6 +10,8 @@ import {
 	FlexItem,
 } from '@wordpress/components';
 
+const siteDomain = window.mailChronicle?.siteDomain || '';
+
 const EmailFilters = ( { filters, onChange } ) => {
 	const handleChange = ( key, value ) => {
 		onChange( { [ key ]: value } );
@@ -22,6 +24,7 @@ const EmailFilters = ( { filters, onChange } ) => {
 			search: '',
 			date_from: '',
 			date_to: '',
+			domain: siteDomain,
 		} );
 	};
 
@@ -87,6 +90,20 @@ const EmailFilters = ( { filters, onChange } ) => {
 					/>
 				</FlexItem>
 
+				{ siteDomain && (
+					<FlexItem>
+						<SelectControl
+							label={ __( 'From or To Domain', 'mail-chronicle' ) }
+							value={ filters.domain }
+							onChange={ ( value ) => handleChange( 'domain', value ) }
+							options={ [
+								{ label: siteDomain, value: siteDomain },
+								{ label: __( 'All Domains', 'mail-chronicle' ), value: '' },
+							] }
+						/>
+					</FlexItem>
+				) }
+
 				<FlexItem>
 					<Button
 						variant="secondary"
@@ -102,4 +119,3 @@ const EmailFilters = ( { filters, onChange } ) => {
 };
 
 export default EmailFilters;
-

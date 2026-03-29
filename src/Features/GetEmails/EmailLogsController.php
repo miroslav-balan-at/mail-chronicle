@@ -12,6 +12,7 @@ namespace MailChronicle\Features\GetEmails;
 
 use MailChronicle\Features\DeleteEmail\DeleteEmail;
 use MailChronicle\Features\DeleteEmail\DeleteEmailInterface;
+use MailChronicle\Features\FetchStoredContent\FetchStoredContentInterface;
 use WP_REST_Controller;
 use WP_REST_Server;
 use WP_Error;
@@ -25,17 +26,21 @@ class EmailLogsController extends WP_REST_Controller {
 
 	private DeleteEmailInterface $delete_handler;
 
+	private FetchStoredContentInterface $fetch_content;
+
 	/**
 	 * Constructor
 	 *
-	 * @param GetEmailsInterface  $handler       Query handler.
-	 * @param DeleteEmailInterface $delete_handler Delete handler.
+	 * @param GetEmailsInterface          $handler       Query handler.
+	 * @param DeleteEmailInterface        $delete_handler Delete handler.
+	 * @param FetchStoredContentInterface $fetch_content  On-demand body fetcher.
 	 */
-	public function __construct( GetEmailsInterface $handler, DeleteEmailInterface $delete_handler ) {
+	public function __construct( GetEmailsInterface $handler, DeleteEmailInterface $delete_handler, FetchStoredContentInterface $fetch_content ) {
 		$this->namespace      = 'mail-chronicle/v1';
 		$this->rest_base      = 'emails';
 		$this->handler        = $handler;
 		$this->delete_handler = $delete_handler;
+		$this->fetch_content  = $fetch_content;
 	}
 
 	/**
@@ -108,6 +113,7 @@ class EmailLogsController extends WP_REST_Controller {
 			'search'    => $request->get_param( 'search' ) ?? '',
 			'date_from' => $request->get_param( 'date_from' ) ?? '',
 			'date_to'   => $request->get_param( 'date_to' ) ?? '',
+			'domain'    => $request->get_param( 'domain' ) ?? '',
 		];
 
 		$result = $this->handler->handle( $args );
@@ -133,7 +139,9 @@ class EmailLogsController extends WP_REST_Controller {
 		// phpcs:ignore Generic.Commenting.DocComment.MissingShort -- Narrows mixed to WP_REST_Request for PHPStan.
 		/** @var \WP_REST_Request $request */
 		$id_param = $request->get_param( 'id' );
-		$email    = $this->handler->get_by_id( is_numeric( $id_param ) ? (int) $id_param : 0 );
+		$id       = is_numeric( $id_param ) ? (int) $id_param : 0;
+
+		$email = $this->fetch_content->handle( $id );
 
 		if ( null === $email ) {
 			return new WP_Error( 'not_found', __( 'Email not found', 'mail-chronicle' ), [ 'status' => 404 ] );
@@ -217,6 +225,9 @@ class EmailLogsController extends WP_REST_Controller {
 				'type' => 'string',
 			],
 			'date_to'   => [
+				'type' => 'string',
+			],
+			'domain'    => [
 				'type' => 'string',
 			],
 		];

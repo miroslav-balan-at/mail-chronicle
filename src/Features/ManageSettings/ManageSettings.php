@@ -37,6 +37,9 @@ final class ManageSettings {
 	 * @return array<string, mixed>
 	 */
 	public function get(): array {
+		$site_host      = (string) wp_parse_url( get_option( 'siteurl', '' ), PHP_URL_HOST );
+		$auto_domain    = '' !== $site_host ? strtolower( explode( ':', $site_host )[0] ) : '';
+
 		$defaults = [
 			'enabled'            => true,
 			'provider'           => Email_Provider::Mailgun->value,
@@ -46,6 +49,7 @@ final class ManageSettings {
 			'log_retention_days' => self::DEFAULT_RETENTION_DAYS,
 			'sync_interval'      => SyncScheduler::DEFAULT_INTERVAL,
 			'sync_days'          => self::DEFAULT_SYNC_DAYS,
+			'default_domain'     => $auto_domain,
 		];
 
 		$saved  = get_option( Constants::OPTION_SETTINGS, [] );
@@ -74,6 +78,7 @@ final class ManageSettings {
 			'log_retention_days' => absint( is_numeric( $data['log_retention_days'] ?? null ) ? $data['log_retention_days'] : self::DEFAULT_RETENTION_DAYS ),
 			'sync_interval'      => in_array( $sync_interval, $valid_intervals, true ) ? $sync_interval : 'disabled',
 			'sync_days'          => absint( is_numeric( $data['sync_days'] ?? null ) ? $data['sync_days'] : self::DEFAULT_SYNC_DAYS ),
+			'default_domain'     => sanitize_text_field( is_string( $data['default_domain'] ?? null ) ? $data['default_domain'] : '' ),
 		];
 
 		/**

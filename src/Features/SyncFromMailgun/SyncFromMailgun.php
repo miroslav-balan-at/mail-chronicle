@@ -78,6 +78,12 @@ final class SyncFromMailgun {
 
 	private EmailRepositoryInterface $email_repository;
 
+	/**
+	 * Basic auth header for the current handle() run.
+	 * Set once in handle() so insert_from_event() and update_existing() can reuse it.
+	 */
+	private string $auth = '';
+
 	public function __construct( EmailRepositoryInterface $email_repository ) {
 		$this->email_repository = $email_repository;
 	}
@@ -116,7 +122,8 @@ final class SyncFromMailgun {
 			? $this->build_initial_url( $domain, $region, is_numeric( $args['days'] ?? null ) ? (int) $args['days'] : 1, $limit )
 			: $this->get_cursor_url( $domain, $region, $limit );
 
-		$auth    = 'Basic ' . base64_encode( 'api:' . $api_key ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode
+		$auth        = 'Basic ' . base64_encode( 'api:' . $api_key ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode
+		$this->auth  = $auth;
 		$synced  = 0;
 		$updated = 0;
 		$skipped = 0;
@@ -314,7 +321,9 @@ final class SyncFromMailgun {
 
 	/**
 	 * Insert a new log row from a Mailgun event.
-	 * Body content is intentionally omitted — it's populated by webhooks instead.
+	 * If the event carries a storage URL (message storage enabled in Mailgun),
+	 * the URL is stored in the headers JSON under `mc_storage_url` for
+	 * on-demand retrieval — no HTTP call is made during sync.
 	 */
 	private function insert_from_event( array $event ): void {
 		$message   = isset( $event['message'] ) && is_array( $event['message'] ) ? $event['message'] : [];
@@ -322,14 +331,24 @@ final class SyncFromMailgun {
 		$status    = self::map_event_status( is_string( $event['event'] ?? null ) ? $event['event'] : '' );
 		$timestamp = is_numeric( $event['timestamp'] ?? null ) ? (int) $event['timestamp'] : time();
 
+		$storage_url = self::extract_storage_url( $event );
+		if ( '' !== $storage_url ) {
+			$headers['mc_storage_url'] = $storage_url;
+		}
+
+		$body = '' !== $storage_url ? $this->fetch_body_from_storage( $storage_url ) : [ 'html' => '', 'plain' => '' ];
+
+		$sender = is_string( $event['sender'] ?? null ) ? $event['sender'] : ( is_string( $headers['from'] ?? null ) ? $headers['from'] : '' );
+
 		$email = new Email(
 			[
 				'provider_message_id' => is_string( $headers['message-id'] ?? null ) ? $headers['message-id'] : '',
 				'provider'            => Email_Provider::Mailgun->value,
+				'sender'              => $sender,
 				'recipient'           => is_string( $event['recipient'] ?? null ) ? $event['recipient'] : '',
 				'subject'             => is_string( $headers['subject'] ?? null ) ? $headers['subject'] : '',
-				'message_html'        => '',
-				'message_plain'       => '',
+				'message_html'        => $body['html'],
+				'message_plain'       => $body['plain'],
 				'headers'             => (string) wp_json_encode( $headers ),
 				'status'              => $status->value,
 				'sent_at'             => gmdate( 'Y-m-d H:i:s', $timestamp ),
@@ -344,11 +363,80 @@ final class SyncFromMailgun {
 		$current_value  = $this->email_repository->get_status( $id );
 		$current_status = Email_Status::tryFrom( is_string( $current_value ) ? $current_value : '' ) ?? Email_Status::Pending;
 
-		if ( ! Email_Status::is_upgrade( $current_status, $new_status ) ) {
-			return;
+		if ( Email_Status::is_upgrade( $current_status, $new_status ) ) {
+			$this->email_repository->update_status( $id, $new_status->value );
 		}
 
-		$this->email_repository->update_status( $id, $new_status->value );
+		// Backfill mc_storage_url if missing — allows on-demand content fetch for
+		// emails that were synced before the FetchStoredContent feature was added.
+		$storage_url = self::extract_storage_url( $event );
+
+		if ( '' !== $storage_url ) {
+			$existing = $this->email_repository->find_by_id( $id );
+			if ( null !== $existing ) {
+				$headers_data = json_decode( $existing->get_headers(), true );
+				$headers_data = is_array( $headers_data ) ? $headers_data : [];
+
+				if ( ! isset( $headers_data['mc_storage_url'] ) ) {
+					$headers_data['mc_storage_url'] = $storage_url;
+					$this->email_repository->update_headers( $id, (string) wp_json_encode( $headers_data ) );
+				}
+
+				if ( '' === $existing->get_message_html() ) {
+					$body = $this->fetch_body_from_storage( $storage_url );
+					if ( '' !== $body['html'] || '' !== $body['plain'] ) {
+						$this->email_repository->update_content( $id, $body['html'], $body['plain'] );
+					}
+				}
+			}
+		}
+	}
+
+	/**
+	 * Fetch body-html and body-plain from a Mailgun stored-message URL.
+	 *
+	 * @return array{html: string, plain: string}
+	 */
+	private function fetch_body_from_storage( string $storage_url ): array {
+		$response = wp_remote_get(
+			$storage_url,
+			[
+				'headers' => [ 'Authorization' => $this->auth ],
+				'timeout' => self::HTTP_TIMEOUT,
+			]
+		);
+
+		if ( is_wp_error( $response ) || 200 !== wp_remote_retrieve_response_code( $response ) ) {
+			return [ 'html' => '', 'plain' => '' ];
+		}
+
+		$data = json_decode( wp_remote_retrieve_body( $response ), true );
+		$data = is_array( $data ) ? $data : [];
+
+		return [
+			'html'  => isset( $data['body-html'] ) && is_string( $data['body-html'] ) ? $data['body-html'] : '',
+			'plain' => isset( $data['body-plain'] ) && is_string( $data['body-plain'] ) ? $data['body-plain'] : '',
+		];
+	}
+
+	/**
+	 * Extract the storage URL from a Mailgun event.
+	 * The `storage.url` field can be either a plain string or a single-element
+	 * array depending on the Mailgun region / API version.
+	 */
+	private static function extract_storage_url( array $event ): string {
+		$storage = isset( $event['storage'] ) && is_array( $event['storage'] ) ? $event['storage'] : [];
+		$raw     = $storage['url'] ?? null;
+
+		if ( is_string( $raw ) && '' !== $raw ) {
+			return $raw;
+		}
+
+		if ( is_array( $raw ) && isset( $raw[0] ) && is_string( $raw[0] ) && '' !== $raw[0] ) {
+			return $raw[0];
+		}
+
+		return '';
 	}
 
 	private static function map_event_status( string $event ): Email_Status {

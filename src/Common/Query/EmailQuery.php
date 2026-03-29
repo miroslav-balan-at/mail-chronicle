@@ -26,6 +26,7 @@ final class EmailQuery {
 	public readonly string $search;
 	public readonly string $date_from;
 	public readonly string $date_to;
+	public readonly string $domain;
 
 	/**
 	 * Allowed columns for ORDER BY — prevents SQL injection via user input.
@@ -58,6 +59,7 @@ final class EmailQuery {
 		$this->search    = is_string( $args['search'] ?? null ) ? $args['search'] : '';
 		$this->date_from = is_string( $args['date_from'] ?? null ) ? $args['date_from'] : '';
 		$this->date_to   = is_string( $args['date_to'] ?? null ) ? $args['date_to'] : '';
+		$this->domain    = is_string( $args['domain'] ?? null ) ? $args['domain'] : '';
 	}
 
 	/**

@@ -21,7 +21,7 @@ final class Schema {
 	/**
 	 * Internal schema version. Bump whenever the table structure changes.
 	 */
-	const DB_VERSION = '1.1.0';
+	const DB_VERSION = '1.2.0';
 
 	private \wpdb $wpdb;
 
@@ -46,6 +46,7 @@ final class Schema {
 			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
 			provider_message_id VARCHAR(255) DEFAULT NULL,
             provider VARCHAR(50) DEFAULT 'WordPress',
+			sender VARCHAR(255) NOT NULL DEFAULT '',
 			recipient VARCHAR(255) NOT NULL,
 			subject VARCHAR(500) NOT NULL,
 			message_html LONGTEXT,

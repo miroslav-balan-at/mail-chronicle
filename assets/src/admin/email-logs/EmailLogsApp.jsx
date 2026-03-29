@@ -13,22 +13,27 @@ import {
 import EmailLogsTable from './components/EmailLogsTable';
 import EmailFilters from './components/EmailFilters';
 
+const siteDomain = window.mailChronicle?.siteDomain || '';
+
+const defaultFilters = {
+	page: 1,
+	per_page: 20,
+	orderby: 'sent_at',
+	order: 'DESC',
+	status: '',
+	provider: '',
+	search: '',
+	date_from: '',
+	date_to: '',
+	domain: siteDomain,
+};
+
 const EmailLogsApp = () => {
 	const [ emails, setEmails ] = useState( [] );
 	const [ loading, setLoading ] = useState( true );
 	const [ syncing, setSyncing ] = useState( false );
 	const [ error, setError ] = useState( null );
-	const [ filters, setFilters ] = useState( {
-		page: 1,
-		per_page: 20,
-		orderby: 'sent_at',
-		order: 'DESC',
-		status: '',
-		provider: '',
-		search: '',
-		date_from: '',
-		date_to: '',
-	} );
+	const [ filters, setFilters ] = useState( defaultFilters );
 	const [ total, setTotal ] = useState( 0 );
 	const [ totalPages, setTotalPages ] = useState( 0 );
 
@@ -67,17 +72,7 @@ const EmailLogsApp = () => {
 	};
 
 	const handleClearFilters = () => {
-		setFilters( {
-			page: 1,
-			per_page: 20,
-			orderby: 'sent_at',
-			order: 'DESC',
-			status: '',
-			provider: '',
-			search: '',
-			date_from: '',
-			date_to: '',
-		} );
+		setFilters( defaultFilters );
 	};
 
 	const handleDelete = async ( id ) => {

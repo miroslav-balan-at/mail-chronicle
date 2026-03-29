@@ -81,6 +81,23 @@ interface EmailRepositoryInterface {
 	public function find_existing_ids_by_provider_message_ids( array $provider_message_ids ): array;
 
 	/**
+	 * Persist the fetched message body content for an existing log row.
+	 *
+	 * @param int    $id    Log entry ID.
+	 * @param string $html  HTML body content.
+	 * @param string $plain Plain-text body content.
+	 */
+	public function update_content( int $id, string $html, string $plain ): void;
+
+	/**
+	 * Replace the raw headers JSON for an existing log row.
+	 *
+	 * @param int    $id      Log entry ID.
+	 * @param string $headers JSON-encoded headers string.
+	 */
+	public function update_headers( int $id, string $headers ): void;
+
+	/**
 	 * Delete a single email and its associated events.
 	 *
 	 * @param int $id Log entry ID.

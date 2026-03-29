@@ -70,8 +70,14 @@ const EmailDetailModal = ( { email, onClose } ) => {
 						return (
 							<div className="mc-detail-modal__tab">
 								<dl className="mc-detail-list">
+									{ email.sender && (
+										<div className="mc-detail-list__row">
+											<dt>{ __( 'From', 'mail-chronicle' ) }</dt>
+											<dd>{ email.sender }</dd>
+										</div>
+									) }
 									<div className="mc-detail-list__row">
-										<dt>{ __( 'Recipient', 'mail-chronicle' ) }</dt>
+										<dt>{ __( 'To', 'mail-chronicle' ) }</dt>
 										<dd>{ email.recipient }</dd>
 									</div>
 									<div className="mc-detail-list__row">
@@ -124,7 +130,7 @@ const EmailDetailModal = ( { email, onClose } ) => {
 								<div className="mc-detail-modal__tab mc-detail-modal__empty">
 									<p>{ __( 'No message content available.', 'mail-chronicle' ) }</p>
 									<p className="description">
-										{ __( 'Message content is only available when Mailgun message storage is enabled.', 'mail-chronicle' ) }
+										{ __( 'Message content is only available for emails synced after enabling Mailgun message storage.', 'mail-chronicle' ) }
 									</p>
 								</div>
 							);

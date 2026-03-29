@@ -25,7 +25,7 @@ const EmailLogsTable = ( {
 	onClearFilters,
 } ) => {
 	const [ selectedEmail, setSelectedEmail ] = useState( null );
-	const [ confirmDelete, setConfirmDelete ] = useState( null ); // { id, subject }
+	const [ confirmDelete, setConfirmDelete ] = useState( null );
 
 	const openModal = ( email ) => setSelectedEmail( email );
 	const closeModal = () => setSelectedEmail( null );
@@ -38,8 +38,14 @@ const EmailLogsTable = ( {
 		setConfirmDelete( null );
 	};
 
+	const extractEmail = ( value ) => {
+		if ( ! value ) return '';
+		const match = value.match( /<([^>]+)>/ );
+		return match ? match[ 1 ] : value.trim();
+	};
+
 	const formatDate = ( dateString ) => {
-		const date = new Date( dateString + 'Z' ); // treat as UTC
+		const date = new Date( dateString + 'Z' );
 		return date.toLocaleString( undefined, {
 			year: 'numeric',
 			month: 'short',
@@ -49,8 +55,6 @@ const EmailLogsTable = ( {
 		} );
 	};
 
-	// Server-side translated labels (from Email_Status::label() via wp_localize_script).
-	// Falls back to JS __() for any status not in the server map.
 	const serverLabels = window.mailChronicle?.statusLabels ?? {};
 	const STATUS_LABELS = {
 		pending:    __( 'Pending', 'mail-chronicle' ),
@@ -104,31 +108,28 @@ const EmailLogsTable = ( {
 				<EmptyState hasFilters={ hasActiveFilters } onClearFilters={ onClearFilters } />
 			) : (
 				<>
-					<table className="wp-list-table widefat fixed striped">
-						<colgroup>
-							<col style={ { width: '22%' } } />
-							<col />
-							<col style={ { width: '10%' } } />
-							<col style={ { width: '11%' } } />
-							<col style={ { width: '16%' } } />
-							<col style={ { width: '8%' } } />
-						</colgroup>
+					<table className="wp-list-table widefat striped" style={ { tableLayout: 'auto' } }>
 						<thead>
 							<tr>
-								<th scope="col">{ __( 'Recipient', 'mail-chronicle' ) }</th>
+								<th scope="col" style={ { width: '15%' } }>{ __( 'From', 'mail-chronicle' ) }</th>
+								<th scope="col" style={ { width: '15%' } }>{ __( 'To', 'mail-chronicle' ) }</th>
 								<th scope="col">{ __( 'Subject', 'mail-chronicle' ) }</th>
-								<th scope="col">{ __( 'Provider', 'mail-chronicle' ) }</th>
-								<th scope="col">{ __( 'Status', 'mail-chronicle' ) }</th>
-								<th scope="col">{ __( 'Sent At', 'mail-chronicle' ) }</th>
-								<th scope="col">{ __( 'Actions', 'mail-chronicle' ) }</th>
+								<th scope="col" style={ { width: '10%' } }>{ __( 'Status', 'mail-chronicle' ) }</th>
+								<th scope="col" style={ { width: '13%' } }>{ __( 'Sent At', 'mail-chronicle' ) }</th>
+								<th scope="col" style={ { width: '7%' } }>{ __( 'Actions', 'mail-chronicle' ) }</th>
 							</tr>
 						</thead>
 						<tbody>
 							{ emails.map( ( email ) => (
 								<tr key={ email.id }>
 									<td>
-										<span className="mc-cell-truncate" title={ email.recipient }>
-											{ email.recipient }
+										<span className="mc-cell-truncate" title={ extractEmail( email.sender ) }>
+											{ extractEmail( email.sender ) || '—' }
+										</span>
+									</td>
+									<td>
+										<span className="mc-cell-truncate" title={ extractEmail( email.recipient ) }>
+											{ extractEmail( email.recipient ) }
 										</span>
 									</td>
 									<td>
@@ -140,7 +141,6 @@ const EmailLogsTable = ( {
 											{ email.subject || __( '(no subject)', 'mail-chronicle' ) }
 										</Button>
 									</td>
-									<td>{ email.provider }</td>
 									<td>{ getStatusBadge( email.status ) }</td>
 									<td>{ formatDate( email.sent_at ) }</td>
 									<td>

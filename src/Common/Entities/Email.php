@@ -20,6 +20,8 @@ final class Email {
 
 	private string $provider;
 
+	private string $sender;
+
 	private string $recipient;
 
 	private string $subject;
@@ -46,6 +48,7 @@ final class Email {
 		$this->id                  = is_numeric( $data['id'] ?? null ) ? (int) $data['id'] : null;
 		$this->provider_message_id = is_string( $data['provider_message_id'] ?? null ) ? $data['provider_message_id'] : null;
 		$this->provider            = is_string( $data['provider'] ?? null ) ? $data['provider'] : Email_Provider::WordPress->value;
+		$this->sender              = is_string( $data['sender'] ?? null ) ? $data['sender'] : '';
 		$this->recipient           = is_string( $data['recipient'] ?? null ) ? $data['recipient'] : '';
 		$this->subject             = is_string( $data['subject'] ?? null ) ? $data['subject'] : '';
 		$this->message_html        = is_string( $data['message_html'] ?? null ) ? $data['message_html'] : '';
@@ -93,6 +96,13 @@ final class Email {
 	}
 
 	/**
+	 * Get sender
+	 */
+	public function get_sender(): string {
+		return $this->sender;
+	}
+
+	/**
 	 * Get recipient
 	 */
 	public function get_recipient(): string {
@@ -118,6 +128,14 @@ final class Email {
 	 */
 	public function get_message_plain(): string {
 		return $this->message_plain;
+	}
+
+	public function set_message_html( string $html ): void {
+		$this->message_html = $html;
+	}
+
+	public function set_message_plain( string $plain ): void {
+		$this->message_plain = $plain;
 	}
 
 	/**
@@ -217,6 +235,7 @@ final class Email {
 			'id'                  => $this->id,
 			'provider_message_id' => $this->provider_message_id,
 			'provider'            => $this->provider,
+			'sender'              => $this->sender,
 			'recipient'           => $this->recipient,
 			'subject'             => $this->subject,
 			'message_html'        => $this->message_html,

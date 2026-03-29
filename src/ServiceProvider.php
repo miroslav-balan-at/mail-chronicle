@@ -16,6 +16,8 @@ use MailChronicle\Common\Repository\EmailRepositoryInterface;
 use MailChronicle\Common\Repository\ProviderEventRepositoryInterface;
 use MailChronicle\Features\DeleteEmail\DeleteEmail;
 use MailChronicle\Features\DeleteEmail\DeleteEmailInterface;
+use MailChronicle\Features\FetchStoredContent\FetchStoredContent;
+use MailChronicle\Features\FetchStoredContent\FetchStoredContentInterface;
 use MailChronicle\Features\GetEmails\EmailLogsController;
 use MailChronicle\Features\GetEmails\EmailLogsPage;
 use MailChronicle\Features\GetEmails\GetEmails;
@@ -113,6 +115,16 @@ final class ServiceProvider {
 			}
 		);
 
+		// Feature: Fetch Stored Content.
+		$this->container->register(
+			'feature.fetch_stored_content',
+			function ( $container ) {
+				/** @var EmailRepositoryInterface $email_repository */
+				$email_repository = $container->get( 'common.repository.email' );
+				return new FetchStoredContent( $email_repository );
+			}
+		);
+
 		$this->container->register(
 			'feature.get_emails.controller',
 			function ( $container ) {
@@ -120,7 +132,9 @@ final class ServiceProvider {
 				$get_emails = $container->get( 'feature.get_emails' );
 				/** @var DeleteEmailInterface $delete_email */
 				$delete_email = $container->get( 'feature.delete_email' );
-				return new EmailLogsController( $get_emails, $delete_email );
+				/** @var FetchStoredContentInterface $fetch_content */
+				$fetch_content = $container->get( 'feature.fetch_stored_content' );
+				return new EmailLogsController( $get_emails, $delete_email, $fetch_content );
 			}
 		);
 

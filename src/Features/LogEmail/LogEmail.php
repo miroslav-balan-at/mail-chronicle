@@ -67,9 +67,12 @@ final class LogEmail {
 		$headers     = [] !== $raw_headers ? implode( "\n", $raw_headers ) : ( is_string( $args['headers'] ) ? $args['headers'] : '' );
 		$attachments = ( isset( $args['attachments'] ) && [] !== $args['attachments'] && false !== $args['attachments'] ) ? wp_json_encode( $args['attachments'] ) : '';
 
+		$sender      = $this->extract_sender( $headers );
+
 		$raw_subject = $args['subject'] ?? '';
 		$email_data  = [
 			'provider'      => $this->detect_provider(),
+			'sender'        => $sender,
 			'recipient'     => sanitize_email( $to_value ),
 			'subject'       => sanitize_text_field( is_string( $raw_subject ) ? $raw_subject : '' ),
 			'message_html'  => $message_html,
@@ -182,6 +185,23 @@ final class LogEmail {
 	}
 
 	// ── Private helpers ───────────────────────────────────────────────────────
+
+	/**
+	 * Extract the sender address from the headers string.
+	 * Falls back to the site admin email.
+	 */
+	private function extract_sender( string $headers ): string {
+		if ( '' !== $headers && preg_match( '/^From:\s*(.+)$/im', $headers, $matches ) ) {
+			$from = trim( $matches[1] );
+			// Extract bare address from "Name <email>" format.
+			if ( preg_match( '/<([^>]+)>/', $from, $addr ) ) {
+				return sanitize_email( $addr[1] );
+			}
+			return sanitize_email( $from );
+		}
+
+		return sanitize_email( (string) get_bloginfo( 'admin_email' ) );
+	}
 
 	/**
 	 * Detect which email provider is active.

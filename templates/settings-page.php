@@ -153,6 +153,19 @@ $default_sync_days = $args['default_sync_days'];
 
 				<tr>
 					<th scope="row">
+						<label for="default_domain"><?php esc_html_e( 'Default Domain Filter', 'mail-chronicle' ); ?></label>
+					</th>
+					<td>
+						<input type="text" name="default_domain" id="default_domain"
+							value="<?php echo esc_attr( is_string( $settings['default_domain'] ?? null ) ? $settings['default_domain'] : '' ); ?>"
+							class="regular-text"
+							placeholder="<?php esc_attr_e( 'e.g. example.com', 'mail-chronicle' ); ?>">
+						<p class="description"><?php esc_html_e( 'The email logs page will default to showing only emails where the recipient matches this domain. Leave empty to show all emails by default.', 'mail-chronicle' ); ?></p>
+					</td>
+				</tr>
+
+				<tr>
+					<th scope="row">
 						<label for="log_retention_days"><?php esc_html_e( 'Log Retention', 'mail-chronicle' ); ?></label>
 					</th>
 					<td>

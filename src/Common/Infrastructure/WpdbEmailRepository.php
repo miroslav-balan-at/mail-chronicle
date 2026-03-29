@@ -41,6 +41,7 @@ final class WpdbEmailRepository implements EmailRepositoryInterface {
 		$db_data = [
 			'provider_message_id' => $email->get_provider_message_id(),
 			'provider'            => $email->get_provider(),
+			'sender'              => $email->get_sender(),
 			'recipient'           => $email->get_recipient(),
 			'subject'             => $email->get_subject(),
 			'message_html'        => $email->get_message_html(),
@@ -134,6 +135,15 @@ final class WpdbEmailRepository implements EmailRepositoryInterface {
 			$values[] = $email_query->date_to;
 		}
 
+		if ( '' !== $email_query->domain ) {
+			$like_addr    = '%@' . $this->wpdb->esc_like( $email_query->domain );
+			$like_headers = '%' . $this->wpdb->esc_like( $email_query->domain ) . '%';
+			$where[]      = '(l.recipient LIKE %s OR l.sender LIKE %s OR l.headers LIKE %s)';
+			$values[]     = $like_addr;
+			$values[]     = $like_addr;
+			$values[]     = $like_headers;
+		}
+
 		$where_clause = implode( ' AND ', $where );
 
 		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
@@ -210,6 +220,31 @@ final class WpdbEmailRepository implements EmailRepositoryInterface {
 		}
 
 		return $map;
+	}
+
+	public function update_content( int $id, string $html, string $plain ): void {
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$this->wpdb->update(
+			$this->table,
+			[
+				'message_html'  => $html,
+				'message_plain' => $plain,
+				'updated_at'    => current_time( 'mysql' ),
+			],
+			[ 'id' => $id ]
+		);
+	}
+
+	public function update_headers( int $id, string $headers ): void {
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$this->wpdb->update(
+			$this->table,
+			[
+				'headers'    => $headers,
+				'updated_at' => current_time( 'mysql' ),
+			],
+			[ 'id' => $id ]
+		);
 	}
 
 	public function delete( int $id ): bool {

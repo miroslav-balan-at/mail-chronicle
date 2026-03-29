@@ -128,6 +128,7 @@ final class SettingsPage {
 			'mailgun_domain'     => sanitize_text_field( wp_unslash( is_string( $_POST['mailgun_domain'] ?? null ) ? $_POST['mailgun_domain'] : '' ) ),
 			'mailgun_region'     => sanitize_text_field( wp_unslash( is_string( $_POST['mailgun_region'] ?? null ) ? $_POST['mailgun_region'] : Mailgun_Region::US->value ) ),
 			'log_retention_days' => absint( is_numeric( $_POST['log_retention_days'] ?? null ) ? $_POST['log_retention_days'] : ManageSettings::DEFAULT_RETENTION_DAYS ),
+			'default_domain'     => sanitize_text_field( wp_unslash( is_string( $_POST['default_domain'] ?? null ) ? $_POST['default_domain'] : '' ) ),
 		];
 		// phpcs:enable WordPress.Security.NonceVerification.Missing
 
