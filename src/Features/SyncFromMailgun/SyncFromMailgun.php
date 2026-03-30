@@ -122,11 +122,11 @@ final class SyncFromMailgun {
 			? $this->build_initial_url( $domain, $region, is_numeric( $args['days'] ?? null ) ? (int) $args['days'] : 1, $limit )
 			: $this->get_cursor_url( $domain, $region, $limit );
 
-		$auth        = 'Basic ' . base64_encode( 'api:' . $api_key ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode
-		$this->auth  = $auth;
-		$synced  = 0;
-		$updated = 0;
-		$skipped = 0;
+		$auth       = 'Basic ' . base64_encode( 'api:' . $api_key ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode
+		$this->auth = $auth;
+		$synced     = 0;
+		$updated    = 0;
+		$skipped    = 0;
 
 		for ( $page = 0; $page < self::MAX_PAGES; $page++ ) {
 			$result = $this->fetch_page( $url, $auth );
@@ -336,7 +336,10 @@ final class SyncFromMailgun {
 			$headers['mc_storage_url'] = $storage_url;
 		}
 
-		$body = '' !== $storage_url ? $this->fetch_body_from_storage( $storage_url ) : [ 'html' => '', 'plain' => '' ];
+		$body = '' !== $storage_url ? $this->fetch_body_from_storage( $storage_url ) : [
+			'html'  => '',
+			'plain' => '',
+		];
 
 		$sender = is_string( $event['sender'] ?? null ) ? $event['sender'] : ( is_string( $headers['from'] ?? null ) ? $headers['from'] : '' );
 
@@ -407,7 +410,10 @@ final class SyncFromMailgun {
 		);
 
 		if ( is_wp_error( $response ) || 200 !== wp_remote_retrieve_response_code( $response ) ) {
-			return [ 'html' => '', 'plain' => '' ];
+			return [
+				'html'  => '',
+				'plain' => '',
+			];
 		}
 
 		$data = json_decode( wp_remote_retrieve_body( $response ), true );

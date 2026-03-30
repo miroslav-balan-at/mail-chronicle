@@ -67,7 +67,7 @@ final class LogEmail {
 		$headers     = [] !== $raw_headers ? implode( "\n", $raw_headers ) : ( is_string( $args['headers'] ) ? $args['headers'] : '' );
 		$attachments = ( isset( $args['attachments'] ) && [] !== $args['attachments'] && false !== $args['attachments'] ) ? wp_json_encode( $args['attachments'] ) : '';
 
-		$sender      = $this->extract_sender( $headers );
+		$sender = $this->extract_sender( $headers );
 
 		$raw_subject = $args['subject'] ?? '';
 		$email_data  = [
@@ -191,10 +191,10 @@ final class LogEmail {
 	 * Falls back to the site admin email.
 	 */
 	private function extract_sender( string $headers ): string {
-		if ( '' !== $headers && preg_match( '/^From:\s*(.+)$/im', $headers, $matches ) ) {
+		if ( '' !== $headers && 1 === preg_match( '/^From:\s*(.+)$/im', $headers, $matches ) ) {
 			$from = trim( $matches[1] );
 			// Extract bare address from "Name <email>" format.
-			if ( preg_match( '/<([^>]+)>/', $from, $addr ) ) {
+			if ( 1 === preg_match( '/<([^>]+)>/', $from, $addr ) ) {
 				return sanitize_email( $addr[1] );
 			}
 			return sanitize_email( $from );

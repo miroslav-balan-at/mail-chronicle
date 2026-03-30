@@ -202,9 +202,11 @@ final class Plugin {
 				$status_labels[ $status->value ] = $status->label();
 			}
 
-			$site_host      = (string) wp_parse_url( get_option( 'siteurl', '' ), PHP_URL_HOST );
-			$auto_domain    = '' !== $site_host ? strtolower( explode( ':', $site_host )[0] ) : '';
-			$site_domain    = is_string( $mc_settings['default_domain'] ?? null ) && '' !== $mc_settings['default_domain'] ? $mc_settings['default_domain'] : $auto_domain;
+			$siteurl     = get_option( 'siteurl', '' );
+			$parsed_host = is_string( $siteurl ) ? wp_parse_url( $siteurl, PHP_URL_HOST ) : null;
+			$site_host   = is_string( $parsed_host ) ? $parsed_host : '';
+			$auto_domain = '' !== $site_host ? strtolower( explode( ':', $site_host )[0] ) : '';
+			$site_domain = is_string( $mc_settings['default_domain'] ?? null ) && '' !== $mc_settings['default_domain'] ? $mc_settings['default_domain'] : $auto_domain;
 
 			wp_localize_script(
 				'mail-chronicle-admin',

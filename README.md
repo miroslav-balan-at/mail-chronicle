@@ -73,7 +73,6 @@ All endpoints require `manage_options` except the webhook endpoint (HMAC-SHA256 
 | `DELETE` | `/emails/{id}` | Delete one email |
 | `DELETE` | `/emails` | Delete all emails |
 | `GET` | `/settings` | Current settings |
-| `POST` | `/settings` | Save settings |
 | `POST` | `/sync` | Trigger provider sync |
 | `POST` | `/webhook/mailgun` | Mailgun event receiver |
 
@@ -83,11 +82,14 @@ All endpoints require `manage_options` except the webhook endpoint (HMAC-SHA256 
 |-----------|------|-------------|
 | `per_page` | int | Results per page (default: 20) |
 | `page` | int | Page number |
+| `orderby` | string | Sort field (default: sent_at) |
+| `order` | string | Sort direction: ASC or DESC (default: DESC) |
 | `status` | string | Filter by status |
 | `provider` | string | Filter by provider |
 | `search` | string | Search recipient/subject |
 | `date_from` | string | Start date (Y-m-d) |
 | `date_to` | string | End date (Y-m-d) |
+| `domain` | string | Filter by sender domain |
 
 ## Developer Hooks
 
@@ -173,6 +175,7 @@ src/
 │   └── WordPress/        # Activator, Deactivator, HooksLoader
 ├── Features/
 │   ├── DeleteEmail/
+│   ├── FetchStoredContent/
 │   ├── GetEmails/
 │   ├── LogEmail/
 │   ├── ManageSettings/

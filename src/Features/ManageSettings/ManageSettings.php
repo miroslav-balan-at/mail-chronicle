@@ -37,8 +37,10 @@ final class ManageSettings {
 	 * @return array<string, mixed>
 	 */
 	public function get(): array {
-		$site_host      = (string) wp_parse_url( get_option( 'siteurl', '' ), PHP_URL_HOST );
-		$auto_domain    = '' !== $site_host ? strtolower( explode( ':', $site_host )[0] ) : '';
+		$siteurl     = get_option( 'siteurl', '' );
+		$parsed_host = is_string( $siteurl ) ? wp_parse_url( $siteurl, PHP_URL_HOST ) : null;
+		$site_host   = is_string( $parsed_host ) ? $parsed_host : '';
+		$auto_domain = '' !== $site_host ? strtolower( explode( ':', $site_host )[0] ) : '';
 
 		$defaults = [
 			'enabled'            => true,
