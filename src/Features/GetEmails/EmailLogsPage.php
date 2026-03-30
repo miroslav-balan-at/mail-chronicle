@@ -18,12 +18,24 @@ defined( 'ABSPATH' ) || exit;
 final class EmailLogsPage {
 
 	public function add_menu_page(): void {
+		// Top-level menu — Email Logs is the default landing page.
+		add_menu_page(
+			__( 'Mail Chronicle', 'mail-chronicle' ),
+			__( 'Mail Chronicle', 'mail-chronicle' ),
+			'manage_options',
+			'mail-chronicle',
+			[ $this, 'render' ],
+			'dashicons-email-alt',
+			30
+		);
+
+		// Rename the auto-created first submenu from "Mail Chronicle" to "Email Logs".
 		add_submenu_page(
 			'mail-chronicle',
 			__( 'Email Logs', 'mail-chronicle' ),
 			__( 'Email Logs', 'mail-chronicle' ),
 			'manage_options',
-			'mail-chronicle-logs',
+			'mail-chronicle',
 			[ $this, 'render' ]
 		);
 	}

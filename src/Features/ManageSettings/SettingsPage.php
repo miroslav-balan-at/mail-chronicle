@@ -36,16 +36,6 @@ final class SettingsPage {
 	}
 
 	public function add_menu_page(): void {
-		add_menu_page(
-			__( 'Mail Chronicle', 'mail-chronicle' ),
-			__( 'Mail Chronicle', 'mail-chronicle' ),
-			'manage_options',
-			'mail-chronicle',
-			[ $this, 'render' ],
-			'dashicons-email-alt',
-			30
-		);
-
 		add_submenu_page(
 			'mail-chronicle',
 			__( 'Settings', 'mail-chronicle' ),

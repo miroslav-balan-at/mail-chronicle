@@ -123,8 +123,8 @@ final class Plugin {
 		$email_logs_page = $this->container->get( 'feature.get_emails.page' );
 		assert( $email_logs_page instanceof EmailLogsPage );
 
-		$this->hooks_loader->add_action( 'admin_menu', $settings_page, 'add_menu_page' );
 		$this->hooks_loader->add_action( 'admin_menu', $email_logs_page, 'add_menu_page' );
+		$this->hooks_loader->add_action( 'admin_menu', $settings_page, 'add_menu_page' );
 
 		// Assets.
 		$this->hooks_loader->add_action( 'admin_enqueue_scripts', $this, 'enqueue_admin_assets' );
