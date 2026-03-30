@@ -14,9 +14,9 @@ declare(strict_types=1);
 
 namespace MailChronicle\Features\FetchStoredContent;
 
-use MailChronicle\Common\Constants;
 use MailChronicle\Common\Entities\Email;
 use MailChronicle\Common\Repository\EmailRepositoryInterface;
+use MailChronicle\Features\ManageSettings\ManageSettingsInterface;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -32,8 +32,11 @@ final class FetchStoredContent implements FetchStoredContentInterface {
 
 	private EmailRepositoryInterface $email_repository;
 
-	public function __construct( EmailRepositoryInterface $email_repository ) {
+	private ManageSettingsInterface $settings;
+
+	public function __construct( EmailRepositoryInterface $email_repository, ManageSettingsInterface $settings ) {
 		$this->email_repository = $email_repository;
+		$this->settings         = $settings;
 	}
 
 	/**
@@ -65,9 +68,8 @@ final class FetchStoredContent implements FetchStoredContentInterface {
 			return $email;
 		}
 
-		$raw_settings = get_option( Constants::OPTION_SETTINGS, [] );
-		$settings     = is_array( $raw_settings ) ? $raw_settings : [];
-		$api_key      = isset( $settings['mailgun_api_key'] ) && is_string( $settings['mailgun_api_key'] ) ? $settings['mailgun_api_key'] : '';
+		$mc_settings = $this->settings->get();
+		$api_key     = is_string( $mc_settings['mailgun_api_key'] ?? null ) ? $mc_settings['mailgun_api_key'] : '';
 
 		if ( '' === $api_key ) {
 			return $email;

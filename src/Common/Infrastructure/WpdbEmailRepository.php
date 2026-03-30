@@ -50,8 +50,8 @@ final class WpdbEmailRepository implements EmailRepositoryInterface {
 			'attachments'         => $email->get_attachments(),
 			'status'              => $email->get_status(),
 			'sent_at'             => $email->get_sent_at(),
-			'created_at'          => current_time( 'mysql' ),
-			'updated_at'          => current_time( 'mysql' ),
+			'created_at'          => $email->get_created_at(),
+			'updated_at'          => $email->get_updated_at(),
 		];
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery

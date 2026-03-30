@@ -7,18 +7,24 @@
 
 namespace MailChronicle;
 
+use MailChronicle\Common\Constants;
+use MailChronicle\Features\SyncFromMailgun\SyncFromMailgun;
+
 defined( 'WP_UNINSTALL_PLUGIN' ) || exit;
+
+require_once __DIR__ . '/vendor/autoload.php';
 
 global $wpdb;
 
 // Delete plugin options.
-delete_option( 'mail_chronicle_version' );
-delete_option( 'mail_chronicle_settings' );
-delete_option( 'mail_chronicle_db_version' );
+delete_option( Constants::OPTION_PLUGIN_VER );
+delete_option( Constants::OPTION_SETTINGS );
+delete_option( Constants::OPTION_DB_VERSION );
+delete_option( SyncFromMailgun::CURSOR_OPTION );
 
 // Delete tables.
-$mail_chronicle_table_logs   = $wpdb->prefix . 'mail_chronicle_logs';
-$mail_chronicle_table_events = $wpdb->prefix . 'mail_chronicle_events';
+$mail_chronicle_table_logs   = $wpdb->prefix . Constants::TABLE_LOGS;
+$mail_chronicle_table_events = $wpdb->prefix . Constants::TABLE_EVENTS;
 
 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name comes from $wpdb->prefix, not user input.
 $wpdb->query( "DROP TABLE IF EXISTS {$mail_chronicle_table_events}" );

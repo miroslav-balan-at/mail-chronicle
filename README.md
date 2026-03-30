@@ -17,6 +17,7 @@ Professional email logging plugin for WordPress with multi-provider support, rea
 - **Webhook Support** — HMAC-SHA256 verified real-time status updates from Mailgun
 - **Background Sync** — cursor-based WP-Cron sync picks up where it left off
 - **Translation Ready** — all strings pass through `__()` / `_e()`
+- **Dependency Injection** — all feature handlers depend on interfaces, wired via a central `ServiceProvider`
 - **Developer Hooks** — 12 actions and 4 filters for extension without modifying core files
 
 ## Requirements

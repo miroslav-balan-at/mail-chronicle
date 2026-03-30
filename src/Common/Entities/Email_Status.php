@@ -79,6 +79,26 @@ enum Email_Status: string {
 		return $incoming->priority() >= $current->priority();
 	}
 
+	// ── Provider event mapping ────────────────────────────────────────────
+
+	/**
+	 * Map a Mailgun event name to an Email_Status.
+	 * Returns null for unrecognised event names.
+	 */
+	public static function from_mailgun_event( string $event ): ?self {
+		return match ( $event ) {
+			'accepted'   => self::Pending,
+			'delivered'  => self::Delivered,
+			'opened'     => self::Opened,
+			'clicked'    => self::Clicked,
+			'failed'     => self::Failed,
+			'rejected'   => self::Failed,
+			'bounced'    => self::Bounced,
+			'complained' => self::Complained,
+			default      => null,
+		};
+	}
+
 	// ── i18n ──────────────────────────────────────────────────────────────
 
 	/**

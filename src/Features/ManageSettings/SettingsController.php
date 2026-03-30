@@ -9,8 +9,6 @@ declare(strict_types=1);
 
 namespace MailChronicle\Features\ManageSettings;
 
-use MailChronicle\Common\Constants;
-use MailChronicle\Common\Entities\Mailgun_Region;
 use WP_REST_Controller;
 use WP_REST_Server;
 use WP_REST_Request;
@@ -24,12 +22,15 @@ defined( 'ABSPATH' ) || exit;
  */
 class SettingsController extends WP_REST_Controller {
 
+	private ManageSettingsInterface $handler;
+
 	/**
 	 * Constructor
 	 */
-	public function __construct() {
+	public function __construct( ManageSettingsInterface $handler ) {
 		$this->namespace = 'mail-chronicle/v1';
 		$this->rest_base = 'settings';
+		$this->handler   = $handler;
 	}
 
 	/**
@@ -50,16 +51,15 @@ class SettingsController extends WP_REST_Controller {
 	}
 
 	public function get_settings( WP_REST_Request $request ): WP_REST_Response {
-		$raw_settings = get_option( Constants::OPTION_SETTINGS, [] );
-		$settings     = is_array( $raw_settings ) ? $raw_settings : [];
+		$settings = $this->handler->get();
 
 		return new WP_REST_Response(
 			[
-				'mailgun_api_key'  => ( isset( $settings['mailgun_api_key'] ) && '' !== $settings['mailgun_api_key'] ) ? '***' : '',
-				'mailgun_domain'   => is_string( $settings['mailgun_domain'] ?? null ) ? $settings['mailgun_domain'] : '',
-				'mailgun_region'   => is_string( $settings['mailgun_region'] ?? null ) ? $settings['mailgun_region'] : Mailgun_Region::US->value,
-				'sendgrid_api_key' => ( isset( $settings['sendgrid_api_key'] ) && '' !== $settings['sendgrid_api_key'] ) ? '***' : '',
-				'logging_enabled'  => isset( $settings['logging_enabled'] ) ? (bool) $settings['logging_enabled'] : true,
+				'enabled'         => (bool) ( $settings['enabled'] ?? true ),
+				'provider'        => is_string( $settings['provider'] ?? null ) ? $settings['provider'] : '',
+				'mailgun_api_key' => ( isset( $settings['mailgun_api_key'] ) && '' !== $settings['mailgun_api_key'] ) ? '***' : '',
+				'mailgun_domain'  => is_string( $settings['mailgun_domain'] ?? null ) ? $settings['mailgun_domain'] : '',
+				'mailgun_region'  => is_string( $settings['mailgun_region'] ?? null ) ? $settings['mailgun_region'] : 'US',
 			],
 			200
 		);

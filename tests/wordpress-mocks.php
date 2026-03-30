@@ -698,6 +698,15 @@ if ( ! function_exists( 'wp_next_scheduled' ) ) {
 }
 
 /**
+ * Mock remove_action function
+ */
+if ( ! function_exists( 'remove_action' ) ) {
+	function remove_action( $tag, $function_to_remove, $priority = 10 ) {
+		return true;
+	}
+}
+
+/**
  * Mock get_bloginfo function
  */
 if ( ! function_exists( 'get_bloginfo' ) ) {

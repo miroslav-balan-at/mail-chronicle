@@ -10,6 +10,7 @@ declare(strict_types=1);
 namespace MailChronicle\Features\PurgeOldLogs;
 
 use MailChronicle\Features\ManageSettings\ManageSettings;
+use MailChronicle\Features\ManageSettings\ManageSettingsInterface;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -25,9 +26,9 @@ final class PurgeScheduler {
 
 	private PurgeOldLogs $handler;
 
-	private ManageSettings $settings;
+	private ManageSettingsInterface $settings;
 
-	public function __construct( PurgeOldLogs $handler, ManageSettings $settings ) {
+	public function __construct( PurgeOldLogs $handler, ManageSettingsInterface $settings ) {
 		$this->handler  = $handler;
 		$this->settings = $settings;
 	}

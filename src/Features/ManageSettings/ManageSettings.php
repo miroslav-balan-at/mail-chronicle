@@ -19,7 +19,7 @@ defined( 'ABSPATH' ) || exit;
 /**
  * Manage Settings Handler
  */
-final class ManageSettings {
+final class ManageSettings implements ManageSettingsInterface {
 
 	// ── Defaults ──────────────────────────────────────────────────────────
 
@@ -109,9 +109,6 @@ final class ManageSettings {
 			 */
 			do_action( 'mail_chronicle_after_settings_saved', $settings );
 		}
-
-		$reschedule_interval = is_string( $settings['sync_interval'] ?? null ) ? $settings['sync_interval'] : 'disabled';
-		SyncScheduler::reschedule( $reschedule_interval );
 
 		return $result;
 	}

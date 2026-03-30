@@ -20,12 +20,12 @@ declare(strict_types=1);
 
 namespace MailChronicle\Features\SyncFromMailgun;
 
-use MailChronicle\Common\Constants;
 use MailChronicle\Common\Entities\Email;
 use MailChronicle\Common\Entities\Email_Provider;
 use MailChronicle\Common\Entities\Email_Status;
 use MailChronicle\Common\Entities\Mailgun_Region;
 use MailChronicle\Common\Repository\EmailRepositoryInterface;
+use MailChronicle\Features\ManageSettings\ManageSettingsInterface;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -60,32 +60,13 @@ final class SyncFromMailgun {
 	 */
 	const HTTP_TIMEOUT = 20;
 
-	/**
-	 * Map of Mailgun event names → Email_Status cases.
-	 *
-	 * @var array<string, Email_Status>
-	 */
-	private const EVENT_STATUS_MAP = [
-		'accepted'   => Email_Status::Pending,
-		'delivered'  => Email_Status::Delivered,
-		'failed'     => Email_Status::Failed,
-		'rejected'   => Email_Status::Failed,
-		'bounced'    => Email_Status::Bounced,
-		'complained' => Email_Status::Complained,
-		'opened'     => Email_Status::Opened,
-		'clicked'    => Email_Status::Clicked,
-	];
-
 	private EmailRepositoryInterface $email_repository;
 
-	/**
-	 * Basic auth header for the current handle() run.
-	 * Set once in handle() so insert_from_event() and update_existing() can reuse it.
-	 */
-	private string $auth = '';
+	private ManageSettingsInterface $settings;
 
-	public function __construct( EmailRepositoryInterface $email_repository ) {
+	public function __construct( EmailRepositoryInterface $email_repository, ManageSettingsInterface $settings ) {
 		$this->email_repository = $email_repository;
+		$this->settings         = $settings;
 	}
 
 	/**
@@ -97,12 +78,11 @@ final class SyncFromMailgun {
 	 * @return array{success: bool, synced: int, updated: int, skipped: int, total: int, message?: string}
 	 */
 	public function handle( array $args = [] ): array {
-		$raw_settings = get_option( Constants::OPTION_SETTINGS, [] );
-		$settings     = is_array( $raw_settings ) ? $raw_settings : [];
-		$api_key      = isset( $settings['mailgun_api_key'] ) && is_string( $settings['mailgun_api_key'] ) ? $settings['mailgun_api_key'] : '';
-		$domain       = isset( $settings['mailgun_domain'] ) && is_string( $settings['mailgun_domain'] ) ? $settings['mailgun_domain'] : '';
-		$region_str   = isset( $settings['mailgun_region'] ) && is_string( $settings['mailgun_region'] ) ? $settings['mailgun_region'] : '';
-		$region       = Mailgun_Region::tryFrom( $region_str ) ?? Mailgun_Region::US;
+		$settings   = $this->settings->get();
+		$api_key    = is_string( $settings['mailgun_api_key'] ?? null ) ? $settings['mailgun_api_key'] : '';
+		$domain     = is_string( $settings['mailgun_domain'] ?? null ) ? $settings['mailgun_domain'] : '';
+		$region_str = is_string( $settings['mailgun_region'] ?? null ) ? $settings['mailgun_region'] : '';
+		$region     = Mailgun_Region::tryFrom( $region_str ) ?? Mailgun_Region::US;
 
 		if ( '' === $api_key || '' === $domain ) {
 			return [
@@ -122,11 +102,10 @@ final class SyncFromMailgun {
 			? $this->build_initial_url( $domain, $region, is_numeric( $args['days'] ?? null ) ? (int) $args['days'] : 1, $limit )
 			: $this->get_cursor_url( $domain, $region, $limit );
 
-		$auth       = 'Basic ' . base64_encode( 'api:' . $api_key ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode
-		$this->auth = $auth;
-		$synced     = 0;
-		$updated    = 0;
-		$skipped    = 0;
+		$auth    = 'Basic ' . base64_encode( 'api:' . $api_key ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode
+		$synced  = 0;
+		$updated = 0;
+		$skipped = 0;
 
 		for ( $page = 0; $page < self::MAX_PAGES; $page++ ) {
 			$result = $this->fetch_page( $url, $auth );
@@ -163,7 +142,7 @@ final class SyncFromMailgun {
 				break;
 			}
 
-			$counts   = $this->process_events( $events );
+			$counts   = $this->process_events( $events, $auth );
 			$synced  += $counts['synced'];
 			$updated += $counts['updated'];
 			$skipped += $counts['skipped'];
@@ -188,7 +167,7 @@ final class SyncFromMailgun {
 	/**
 	 * Reset the stored cursor (call after "Delete All Logs").
 	 */
-	public static function reset_cursor(): void {
+	public function reset_cursor(): void {
 		delete_option( self::CURSOR_OPTION );
 	}
 
@@ -284,7 +263,7 @@ final class SyncFromMailgun {
 	 * @param array<int, array<string, mixed>> $events
 	 * @return array{synced: int, updated: int, skipped: int}
 	 */
-	private function process_events( array $events ): array {
+	private function process_events( array $events, string $auth ): array {
 		$message_ids = [];
 		foreach ( $events as $event ) {
 			$mid = $this->extract_message_id( $event );
@@ -308,10 +287,10 @@ final class SyncFromMailgun {
 			}
 
 			if ( isset( $existing[ $mid ] ) ) {
-				$this->update_existing( $existing[ $mid ], $event );
+				$this->update_existing( $existing[ $mid ], $event, $auth );
 				++$updated;
 			} else {
-				$this->insert_from_event( $event );
+				$this->insert_from_event( $event, $auth );
 				++$synced;
 			}
 		}
@@ -325,10 +304,10 @@ final class SyncFromMailgun {
 	 * the URL is stored in the headers JSON under `mc_storage_url` for
 	 * on-demand retrieval — no HTTP call is made during sync.
 	 */
-	private function insert_from_event( array $event ): void {
+	private function insert_from_event( array $event, string $auth ): void {
 		$message   = isset( $event['message'] ) && is_array( $event['message'] ) ? $event['message'] : [];
 		$headers   = isset( $message['headers'] ) && is_array( $message['headers'] ) ? $message['headers'] : [];
-		$status    = self::map_event_status( is_string( $event['event'] ?? null ) ? $event['event'] : '' );
+		$status    = Email_Status::from_mailgun_event( is_string( $event['event'] ?? null ) ? $event['event'] : '' ) ?? Email_Status::Pending;
 		$timestamp = is_numeric( $event['timestamp'] ?? null ) ? (int) $event['timestamp'] : time();
 
 		$storage_url = self::extract_storage_url( $event );
@@ -336,7 +315,7 @@ final class SyncFromMailgun {
 			$headers['mc_storage_url'] = $storage_url;
 		}
 
-		$body = '' !== $storage_url ? $this->fetch_body_from_storage( $storage_url ) : [
+		$body = '' !== $storage_url ? $this->fetch_body_from_storage( $storage_url, $auth ) : [
 			'html'  => '',
 			'plain' => '',
 		];
@@ -361,8 +340,8 @@ final class SyncFromMailgun {
 		$this->email_repository->save( $email );
 	}
 
-	private function update_existing( int $id, array $event ): void {
-		$new_status     = self::map_event_status( is_string( $event['event'] ?? null ) ? $event['event'] : '' );
+	private function update_existing( int $id, array $event, string $auth ): void {
+		$new_status     = Email_Status::from_mailgun_event( is_string( $event['event'] ?? null ) ? $event['event'] : '' ) ?? Email_Status::Pending;
 		$current_value  = $this->email_repository->get_status( $id );
 		$current_status = Email_Status::tryFrom( is_string( $current_value ) ? $current_value : '' ) ?? Email_Status::Pending;
 
@@ -386,7 +365,7 @@ final class SyncFromMailgun {
 				}
 
 				if ( '' === $existing->get_message_html() ) {
-					$body = $this->fetch_body_from_storage( $storage_url );
+					$body = $this->fetch_body_from_storage( $storage_url, $auth );
 					if ( '' !== $body['html'] || '' !== $body['plain'] ) {
 						$this->email_repository->update_content( $id, $body['html'], $body['plain'] );
 					}
@@ -400,11 +379,11 @@ final class SyncFromMailgun {
 	 *
 	 * @return array{html: string, plain: string}
 	 */
-	private function fetch_body_from_storage( string $storage_url ): array {
+	private function fetch_body_from_storage( string $storage_url, string $auth ): array {
 		$response = wp_remote_get(
 			$storage_url,
 			[
-				'headers' => [ 'Authorization' => $this->auth ],
+				'headers' => [ 'Authorization' => $auth ],
 				'timeout' => self::HTTP_TIMEOUT,
 			]
 		);
@@ -443,9 +422,5 @@ final class SyncFromMailgun {
 		}
 
 		return '';
-	}
-
-	private static function map_event_status( string $event ): Email_Status {
-		return self::EVENT_STATUS_MAP[ $event ] ?? Email_Status::Pending;
 	}
 }

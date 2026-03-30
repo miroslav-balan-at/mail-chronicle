@@ -13,13 +13,13 @@ declare(strict_types=1);
 
 namespace MailChronicle\Features\ProcessMailgunWebhook;
 
-use MailChronicle\Common\Constants;
 use MailChronicle\Common\Entities\Email;
 use MailChronicle\Common\Entities\Email_Provider;
 use MailChronicle\Common\Entities\Email_Status;
 use MailChronicle\Common\Entities\ProviderEvent;
 use MailChronicle\Common\Repository\EmailRepositoryInterface;
 use MailChronicle\Common\Repository\ProviderEventRepositoryInterface;
+use MailChronicle\Features\ManageSettings\ManageSettingsInterface;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -37,15 +37,19 @@ final class ProcessMailgunWebhook {
 
 	private ProviderEventRepositoryInterface $event_repository;
 
+	private ManageSettingsInterface $settings;
+
 	/**
 	 * Constructor
 	 */
 	public function __construct(
 		EmailRepositoryInterface $email_repository,
-		ProviderEventRepositoryInterface $event_repository
+		ProviderEventRepositoryInterface $event_repository,
+		ManageSettingsInterface $settings
 	) {
 		$this->email_repository = $email_repository;
 		$this->event_repository = $event_repository;
+		$this->settings         = $settings;
 	}
 
 	public function handle( array $payload ): bool {
@@ -140,7 +144,7 @@ final class ProcessMailgunWebhook {
 	}
 
 	private function maybe_update_status( int $log_id, string $event_type ): void {
-		$new_status = Email_Status::tryFrom( $this->map_event_to_status( $event_type ) );
+		$new_status = Email_Status::from_mailgun_event( $event_type );
 
 		if ( null === $new_status ) {
 			return;
@@ -157,9 +161,8 @@ final class ProcessMailgunWebhook {
 	}
 
 	private function verify_signature( array $payload ): bool {
-		$raw_settings = get_option( Constants::OPTION_SETTINGS, [] );
-		$settings     = is_array( $raw_settings ) ? $raw_settings : [];
-		$api_key      = isset( $settings['mailgun_api_key'] ) && is_string( $settings['mailgun_api_key'] ) ? $settings['mailgun_api_key'] : '';
+		$settings = $this->settings->get();
+		$api_key  = is_string( $settings['mailgun_api_key'] ?? null ) ? $settings['mailgun_api_key'] : '';
 
 		if ( '' === $api_key ) {
 			return false;
@@ -183,19 +186,5 @@ final class ProcessMailgunWebhook {
 			hash_hmac( 'sha256', $timestamp . $token, $api_key ),
 			$sig
 		);
-	}
-
-	private function map_event_to_status( string $event ): string {
-		$map = [
-			'accepted'   => Email_Status::Pending->value,
-			'delivered'  => Email_Status::Delivered->value,
-			'opened'     => Email_Status::Opened->value,
-			'clicked'    => Email_Status::Clicked->value,
-			'failed'     => Email_Status::Failed->value,
-			'bounced'    => Email_Status::Bounced->value,
-			'complained' => Email_Status::Complained->value,
-		];
-
-		return $map[ $event ] ?? '';
 	}
 }

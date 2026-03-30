@@ -17,8 +17,8 @@ declare(strict_types=1);
 
 namespace MailChronicle\Features\Sync;
 
-use MailChronicle\Common\Constants;
 use MailChronicle\Common\Entities\Email_Provider;
+use MailChronicle\Features\ManageSettings\ManageSettingsInterface;
 use MailChronicle\Features\SyncFromMailgun\SyncFromMailgun;
 use WP_Error;
 use WP_REST_Controller;
@@ -35,13 +35,16 @@ class SyncController extends WP_REST_Controller {
 
 	private SyncFromMailgun $sync_mailgun;
 
+	private ManageSettingsInterface $settings;
+
 	/**
 	 * Constructor
 	 */
-	public function __construct( SyncFromMailgun $sync_mailgun ) {
+	public function __construct( SyncFromMailgun $sync_mailgun, ManageSettingsInterface $settings ) {
 		$this->namespace    = 'mail-chronicle/v1';
 		$this->rest_base    = 'sync';
 		$this->sync_mailgun = $sync_mailgun;
+		$this->settings     = $settings;
 	}
 
 	/**
@@ -63,9 +66,8 @@ class SyncController extends WP_REST_Controller {
 	}
 
 	public function sync( WP_REST_Request $request ): WP_REST_Response|WP_Error {
-		$raw_settings = get_option( Constants::OPTION_SETTINGS, [] );
-		$settings     = is_array( $raw_settings ) ? $raw_settings : [];
-		$provider_str = isset( $settings['provider'] ) && is_string( $settings['provider'] ) ? $settings['provider'] : '';
+		$settings     = $this->settings->get();
+		$provider_str = is_string( $settings['provider'] ?? null ) ? $settings['provider'] : '';
 		$provider     = Email_Provider::tryFrom( $provider_str );
 
 		if ( null === $provider ) {

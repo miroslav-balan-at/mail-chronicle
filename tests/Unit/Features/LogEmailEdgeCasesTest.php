@@ -9,6 +9,7 @@ namespace MailChronicle\Tests\Unit\Features;
 
 use MailChronicle\Tests\TestCase;
 use MailChronicle\Features\LogEmail\LogEmail;
+use MailChronicle\Features\ManageSettings\ManageSettingsInterface;
 use MailChronicle\Common\Repository\EmailRepositoryInterface;
 use Mockery;
 
@@ -29,13 +30,9 @@ class LogEmailEdgeCasesTest extends TestCase {
 	 * Test handle with array of recipients
 	 */
 	public function test_handle_with_array_of_recipients() {
-		$this->set_mock_option(
-			'mail_chronicle_settings',
-			array(
-				'enabled'  => true,
-				'provider' => 'wordpress',
-			)
-		);
+		$manage_settings = Mockery::mock( ManageSettingsInterface::class );
+		$manage_settings->shouldReceive( 'get' )
+			->andReturn( array( 'enabled' => true, 'provider' => 'wordpress' ) );
 
 		$saved_email      = null;
 		$email_repository = Mockery::mock( EmailRepositoryInterface::class );
@@ -48,7 +45,7 @@ class LogEmailEdgeCasesTest extends TestCase {
 				}
 			);
 
-		$logger = new LogEmail( $email_repository );
+		$logger = new LogEmail( $email_repository, $manage_settings );
 
 		$args = array(
 			'to'      => array( 'first@example.com', 'second@example.com' ),
@@ -67,13 +64,9 @@ class LogEmailEdgeCasesTest extends TestCase {
 	 * Test handle with empty subject
 	 */
 	public function test_handle_with_empty_subject() {
-		$this->set_mock_option(
-			'mail_chronicle_settings',
-			array(
-				'enabled'  => true,
-				'provider' => 'wordpress',
-			)
-		);
+		$manage_settings = Mockery::mock( ManageSettingsInterface::class );
+		$manage_settings->shouldReceive( 'get' )
+			->andReturn( array( 'enabled' => true, 'provider' => 'wordpress' ) );
 
 		$saved_email      = null;
 		$email_repository = Mockery::mock( EmailRepositoryInterface::class );
@@ -86,7 +79,7 @@ class LogEmailEdgeCasesTest extends TestCase {
 				}
 			);
 
-		$logger = new LogEmail( $email_repository );
+		$logger = new LogEmail( $email_repository, $manage_settings );
 
 		$args = array(
 			'to'      => 'test@example.com',
@@ -104,13 +97,9 @@ class LogEmailEdgeCasesTest extends TestCase {
 	 * Test handle with array headers
 	 */
 	public function test_handle_with_array_headers() {
-		$this->set_mock_option(
-			'mail_chronicle_settings',
-			array(
-				'enabled'  => true,
-				'provider' => 'wordpress',
-			)
-		);
+		$manage_settings = Mockery::mock( ManageSettingsInterface::class );
+		$manage_settings->shouldReceive( 'get' )
+			->andReturn( array( 'enabled' => true, 'provider' => 'wordpress' ) );
 
 		$saved_email      = null;
 		$email_repository = Mockery::mock( EmailRepositoryInterface::class );
@@ -123,7 +112,7 @@ class LogEmailEdgeCasesTest extends TestCase {
 				}
 			);
 
-		$logger = new LogEmail( $email_repository );
+		$logger = new LogEmail( $email_repository, $manage_settings );
 
 		$args = array(
 			'to'      => 'test@example.com',
@@ -142,13 +131,9 @@ class LogEmailEdgeCasesTest extends TestCase {
 	 * Test handle with attachments array
 	 */
 	public function test_handle_with_attachments_array() {
-		$this->set_mock_option(
-			'mail_chronicle_settings',
-			array(
-				'enabled'  => true,
-				'provider' => 'wordpress',
-			)
-		);
+		$manage_settings = Mockery::mock( ManageSettingsInterface::class );
+		$manage_settings->shouldReceive( 'get' )
+			->andReturn( array( 'enabled' => true, 'provider' => 'wordpress' ) );
 
 		$saved_email      = null;
 		$email_repository = Mockery::mock( EmailRepositoryInterface::class );
@@ -161,7 +146,7 @@ class LogEmailEdgeCasesTest extends TestCase {
 				}
 			);
 
-		$logger = new LogEmail( $email_repository );
+		$logger = new LogEmail( $email_repository, $manage_settings );
 
 		$args = array(
 			'to'          => 'test@example.com',
@@ -181,13 +166,9 @@ class LogEmailEdgeCasesTest extends TestCase {
 	 * Test handle with very long message
 	 */
 	public function test_handle_with_very_long_message() {
-		$this->set_mock_option(
-			'mail_chronicle_settings',
-			array(
-				'enabled'  => true,
-				'provider' => 'wordpress',
-			)
-		);
+		$manage_settings = Mockery::mock( ManageSettingsInterface::class );
+		$manage_settings->shouldReceive( 'get' )
+			->andReturn( array( 'enabled' => true, 'provider' => 'wordpress' ) );
 
 		$saved_email      = null;
 		$email_repository = Mockery::mock( EmailRepositoryInterface::class );
@@ -200,7 +181,7 @@ class LogEmailEdgeCasesTest extends TestCase {
 				}
 			);
 
-		$logger = new LogEmail( $email_repository );
+		$logger = new LogEmail( $email_repository, $manage_settings );
 
 		$long_message = str_repeat( 'This is a very long message. ', 1000 );
 

@@ -13,7 +13,6 @@ use MailChronicle\Common\Database\Schema;
 use MailChronicle\Common\WordPress\Activator;
 use MailChronicle\Common\WordPress\Deactivator;
 use MailChronicle\Common\WordPress\HooksLoader;
-use MailChronicle\Common\Constants;
 use MailChronicle\Common\Entities\Email_Status;
 use MailChronicle\Features\ManageSettings\ManageSettings;
 use MailChronicle\Features\PurgeOldLogs\PurgeScheduler;
@@ -195,18 +194,17 @@ final class Plugin {
 			);
 
 			// Localize script.
-			$mc_settings   = get_option( Constants::OPTION_SETTINGS, [] );
-			$mc_settings   = is_array( $mc_settings ) ? $mc_settings : [];
-			$status_labels = [];
+			/** @var ManageSettings $manage_settings */
+			$manage_settings = $this->container->get( 'feature.manage_settings' );
+			$mc_settings     = $manage_settings->get();
+			$status_labels   = [];
 			foreach ( Email_Status::cases() as $status ) {
 				$status_labels[ $status->value ] = $status->label();
 			}
 
-			$siteurl     = get_option( 'siteurl', '' );
-			$parsed_host = is_string( $siteurl ) ? wp_parse_url( $siteurl, PHP_URL_HOST ) : null;
-			$site_host   = is_string( $parsed_host ) ? $parsed_host : '';
-			$auto_domain = '' !== $site_host ? strtolower( explode( ':', $site_host )[0] ) : '';
-			$site_domain = is_string( $mc_settings['default_domain'] ?? null ) && '' !== $mc_settings['default_domain'] ? $mc_settings['default_domain'] : $auto_domain;
+			$site_domain = is_string( $mc_settings['default_domain'] ?? null ) && '' !== $mc_settings['default_domain']
+				? $mc_settings['default_domain']
+				: '';
 
 			wp_localize_script(
 				'mail-chronicle-admin',

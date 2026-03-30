@@ -23,13 +23,16 @@ defined( 'ABSPATH' ) || exit;
  */
 final class SettingsPage {
 
-	private ManageSettings $handler;
+	private ManageSettingsInterface $handler;
 
 	private DeleteEmailInterface $delete_email;
 
-	public function __construct( ManageSettings $handler, DeleteEmailInterface $delete_email ) {
+	private SyncFromMailgun $sync_mailgun;
+
+	public function __construct( ManageSettingsInterface $handler, DeleteEmailInterface $delete_email, SyncFromMailgun $sync_mailgun ) {
 		$this->handler      = $handler;
 		$this->delete_email = $delete_email;
+		$this->sync_mailgun = $sync_mailgun;
 	}
 
 	public function add_menu_page(): void {
@@ -144,7 +147,7 @@ final class SettingsPage {
 
 	private function delete_all_logs(): void {
 		$this->delete_email->delete_all();
-		SyncFromMailgun::reset_cursor();
+		$this->sync_mailgun->reset_cursor();
 
 		add_settings_error( 'mail_chronicle_settings', 'logs_deleted', __( 'All email logs have been deleted.', 'mail-chronicle' ), 'success' );
 	}

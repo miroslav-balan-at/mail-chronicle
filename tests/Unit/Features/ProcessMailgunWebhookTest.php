@@ -10,6 +10,7 @@ namespace MailChronicle\Tests\Unit\Features;
 use MailChronicle\Tests\TestCase;
 use MailChronicle\Common\Repository\EmailRepositoryInterface;
 use MailChronicle\Common\Repository\ProviderEventRepositoryInterface;
+use MailChronicle\Features\ManageSettings\ManageSettingsInterface;
 use MailChronicle\Features\ProcessMailgunWebhook\ProcessMailgunWebhook;
 use Mockery;
 
@@ -30,11 +31,13 @@ class ProcessMailgunWebhookTest extends TestCase {
 	 * Test handle returns false when the signature is invalid
 	 */
 	public function test_handle_returns_false_when_signature_invalid() {
-		$GLOBALS['test_options'] = array( 'mailgun_api_key' => 'test-key' );
+		$manage_settings = Mockery::mock( ManageSettingsInterface::class );
+		$manage_settings->shouldReceive( 'get' )
+			->andReturn( array( 'mailgun_api_key' => 'test-key' ) );
 
 		$email_repository = Mockery::mock( EmailRepositoryInterface::class );
 		$event_repository = Mockery::mock( ProviderEventRepositoryInterface::class );
-		$handler          = new ProcessMailgunWebhook( $email_repository, $event_repository );
+		$handler          = new ProcessMailgunWebhook( $email_repository, $event_repository, $manage_settings );
 
 		$payload = array(
 			'signature'  => array(
@@ -61,9 +64,13 @@ class ProcessMailgunWebhookTest extends TestCase {
 	 * Test handle returns false when event data is missing
 	 */
 	public function test_handle_returns_false_when_event_data_missing() {
+		$manage_settings = Mockery::mock( ManageSettingsInterface::class );
+		$manage_settings->shouldReceive( 'get' )
+			->andReturn( array( 'mailgun_api_key' => '' ) );
+
 		$email_repository = Mockery::mock( EmailRepositoryInterface::class );
 		$event_repository = Mockery::mock( ProviderEventRepositoryInterface::class );
-		$handler          = new ProcessMailgunWebhook( $email_repository, $event_repository );
+		$handler          = new ProcessMailgunWebhook( $email_repository, $event_repository, $manage_settings );
 
 		$payload = array(
 			'signature' => array(
@@ -82,9 +89,13 @@ class ProcessMailgunWebhookTest extends TestCase {
 	 * Test handle returns false when message ID is missing
 	 */
 	public function test_handle_returns_false_when_message_id_missing() {
+		$manage_settings = Mockery::mock( ManageSettingsInterface::class );
+		$manage_settings->shouldReceive( 'get' )
+			->andReturn( array( 'mailgun_api_key' => '' ) );
+
 		$email_repository = Mockery::mock( EmailRepositoryInterface::class );
 		$event_repository = Mockery::mock( ProviderEventRepositoryInterface::class );
-		$handler          = new ProcessMailgunWebhook( $email_repository, $event_repository );
+		$handler          = new ProcessMailgunWebhook( $email_repository, $event_repository, $manage_settings );
 
 		$payload = array(
 			'signature'  => array(
@@ -111,10 +122,9 @@ class ProcessMailgunWebhookTest extends TestCase {
 		$token     = 'test-token';
 		$api_key   = 'test-key';
 
-		$this->set_mock_option(
-			'mail_chronicle_settings',
-			array( 'mailgun_api_key' => $api_key )
-		);
+		$manage_settings = Mockery::mock( ManageSettingsInterface::class );
+		$manage_settings->shouldReceive( 'get' )
+			->andReturn( array( 'mailgun_api_key' => $api_key ) );
 
 		$email_repository = Mockery::mock( EmailRepositoryInterface::class );
 		$event_repository = Mockery::mock( ProviderEventRepositoryInterface::class );
@@ -143,7 +153,7 @@ class ProcessMailgunWebhookTest extends TestCase {
 			->andReturn( 1 );
 
 		$signature = hash_hmac( 'sha256', $timestamp . $token, $api_key );
-		$handler   = new ProcessMailgunWebhook( $email_repository, $event_repository );
+		$handler   = new ProcessMailgunWebhook( $email_repository, $event_repository, $manage_settings );
 
 		$payload = array(
 			'signature'  => array(
@@ -175,10 +185,9 @@ class ProcessMailgunWebhookTest extends TestCase {
 		$token     = 'test-token';
 		$api_key   = 'test-key';
 
-		$this->set_mock_option(
-			'mail_chronicle_settings',
-			array( 'mailgun_api_key' => $api_key )
-		);
+		$manage_settings = Mockery::mock( ManageSettingsInterface::class );
+		$manage_settings->shouldReceive( 'get' )
+			->andReturn( array( 'mailgun_api_key' => $api_key ) );
 
 		$email_repository = Mockery::mock( EmailRepositoryInterface::class );
 		$event_repository = Mockery::mock( ProviderEventRepositoryInterface::class );
@@ -193,7 +202,7 @@ class ProcessMailgunWebhookTest extends TestCase {
 			->andReturn( false );
 
 		$signature = hash_hmac( 'sha256', $timestamp . $token, $api_key );
-		$handler   = new ProcessMailgunWebhook( $email_repository, $event_repository );
+		$handler   = new ProcessMailgunWebhook( $email_repository, $event_repository, $manage_settings );
 
 		$payload = array(
 			'signature'  => array(

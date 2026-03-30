@@ -9,6 +9,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed — SOLID / DDD Refactoring
+
+**Dependency Inversion (all `get_option()` calls replaced with injected settings)**
+- Introduced `ManageSettingsInterface` — all feature handlers now depend on the interface, not the concrete `ManageSettings` class
+- `LogEmail`, `SyncFromMailgun`, `ProcessMailgunWebhook`, `FetchStoredContent`, `SyncController`, `SettingsController` now receive `ManageSettingsInterface` via constructor injection instead of calling `get_option()` directly
+- `SettingsController` now delegates to `ManageSettings::get()` instead of reading the database directly; field names in the REST response now match the actual settings keys
+
+**Single Responsibility / Decoupling**
+- `ManageSettings::update()` no longer calls `SyncScheduler::reschedule()` directly; the scheduler now listens to the `mail_chronicle_after_settings_saved` hook instead
+- `SettingsPage` receives `SyncFromMailgun` via constructor to call `reset_cursor()` as an instance method instead of a static call
+- `SyncFromMailgun::reset_cursor()` converted from static to instance method
+- `SyncFromMailgun` no longer stores mutable `$this->auth` state; auth is passed as a parameter to all private methods (eliminates temporal coupling)
+
+**Domain Logic**
+- Deduplicated Mailgun event-to-status mapping: both `ProcessMailgunWebhook` and `SyncFromMailgun` now use `Email_Status::from_mailgun_event()` — the single authoritative mapping on the enum
+- `WpdbEmailRepository::save()` now respects the entity's `created_at`/`updated_at` timestamps instead of overriding them
+
+**Bug Fix**
+- Fixed hook accumulation bug in `LogEmail::capture_provider_id()`: closures registered on `wp_mail_succeeded`/`wp_mail_failed` are now tracked and removed before registering new ones, preventing redundant `update_status()` calls when multiple emails are sent per request
+
+**Cleanup**
+- `uninstall.php` now uses `Constants::OPTION_*` and `Constants::TABLE_*` instead of hardcoded strings; also deletes the sync cursor option
+- Removed unused `Constants` import from several files
+
 ### Planned for 1.1.0 — SendGrid Integration
 
 - **SendGrid webhook support** — verify SendGrid Event Webhook signatures (ECDSA or HTTP basic) and map events (`delivered`, `open`, `click`, `bounce`, `spamreport`, `unsubscribe`) to `Email_Status`

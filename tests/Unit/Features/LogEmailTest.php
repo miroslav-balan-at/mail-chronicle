@@ -9,6 +9,7 @@ namespace MailChronicle\Tests\Unit\Features;
 
 use MailChronicle\Tests\TestCase;
 use MailChronicle\Features\LogEmail\LogEmail;
+use MailChronicle\Features\ManageSettings\ManageSettingsInterface;
 use MailChronicle\Common\Repository\EmailRepositoryInterface;
 use Mockery;
 
@@ -29,10 +30,12 @@ class LogEmailTest extends TestCase {
 	 * Test handle returns args unchanged when logging is disabled
 	 */
 	public function test_handle_returns_args_when_logging_disabled() {
-		$GLOBALS['test_options'] = array( 'enabled' => false );
+		$manage_settings = Mockery::mock( ManageSettingsInterface::class );
+		$manage_settings->shouldReceive( 'get' )
+			->andReturn( array( 'enabled' => false ) );
 
 		$email_repository = Mockery::mock( EmailRepositoryInterface::class );
-		$logger           = new LogEmail( $email_repository );
+		$logger           = new LogEmail( $email_repository, $manage_settings );
 
 		$args = array(
 			'to'      => 'test@example.com',
@@ -50,20 +53,16 @@ class LogEmailTest extends TestCase {
 	 * Test handle logs email when logging is enabled
 	 */
 	public function test_handle_logs_email_when_enabled() {
-		$this->set_mock_option(
-			'mail_chronicle_settings',
-			array(
-				'enabled'  => true,
-				'provider' => 'mailgun',
-			)
-		);
+		$manage_settings = Mockery::mock( ManageSettingsInterface::class );
+		$manage_settings->shouldReceive( 'get' )
+			->andReturn( array( 'enabled' => true, 'provider' => 'mailgun' ) );
 
 		$email_repository = Mockery::mock( EmailRepositoryInterface::class );
 		$email_repository->shouldReceive( 'save' )
 			->once()
 			->andReturn( 123 );
 
-		$logger = new LogEmail( $email_repository );
+		$logger = new LogEmail( $email_repository, $manage_settings );
 
 		$args = array(
 			'to'          => 'test@example.com',
@@ -82,13 +81,9 @@ class LogEmailTest extends TestCase {
 	 * Test handle sanitizes email data
 	 */
 	public function test_handle_sanitizes_email_data() {
-		$this->set_mock_option(
-			'mail_chronicle_settings',
-			array(
-				'enabled'  => true,
-				'provider' => 'wordpress',
-			)
-		);
+		$manage_settings = Mockery::mock( ManageSettingsInterface::class );
+		$manage_settings->shouldReceive( 'get' )
+			->andReturn( array( 'enabled' => true, 'provider' => 'wordpress' ) );
 
 		$saved_email      = null;
 		$email_repository = Mockery::mock( EmailRepositoryInterface::class );
@@ -101,7 +96,7 @@ class LogEmailTest extends TestCase {
 				}
 			);
 
-		$logger = new LogEmail( $email_repository );
+		$logger = new LogEmail( $email_repository, $manage_settings );
 
 		$args = array(
 			'to'      => 'test@example.com',
@@ -121,13 +116,9 @@ class LogEmailTest extends TestCase {
 	 * Test handle converts plain text to HTML
 	 */
 	public function test_handle_converts_plain_text_to_html() {
-		$this->set_mock_option(
-			'mail_chronicle_settings',
-			array(
-				'enabled'  => true,
-				'provider' => 'wordpress',
-			)
-		);
+		$manage_settings = Mockery::mock( ManageSettingsInterface::class );
+		$manage_settings->shouldReceive( 'get' )
+			->andReturn( array( 'enabled' => true, 'provider' => 'wordpress' ) );
 
 		$saved_email      = null;
 		$email_repository = Mockery::mock( EmailRepositoryInterface::class );
@@ -140,7 +131,7 @@ class LogEmailTest extends TestCase {
 				}
 			);
 
-		$logger = new LogEmail( $email_repository );
+		$logger = new LogEmail( $email_repository, $manage_settings );
 
 		$args = array(
 			'to'      => 'test@example.com',
@@ -158,13 +149,9 @@ class LogEmailTest extends TestCase {
 	 * Test handle preserves HTML message
 	 */
 	public function test_handle_preserves_html_message() {
-		$this->set_mock_option(
-			'mail_chronicle_settings',
-			array(
-				'enabled'  => true,
-				'provider' => 'wordpress',
-			)
-		);
+		$manage_settings = Mockery::mock( ManageSettingsInterface::class );
+		$manage_settings->shouldReceive( 'get' )
+			->andReturn( array( 'enabled' => true, 'provider' => 'wordpress' ) );
 
 		$saved_email      = null;
 		$email_repository = Mockery::mock( EmailRepositoryInterface::class );
@@ -177,7 +164,7 @@ class LogEmailTest extends TestCase {
 				}
 			);
 
-		$logger = new LogEmail( $email_repository );
+		$logger = new LogEmail( $email_repository, $manage_settings );
 
 		$html_message = '<p>Test message</p>';
 		$args         = array(

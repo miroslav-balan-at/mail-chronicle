@@ -14,7 +14,7 @@ declare(strict_types=1);
 namespace MailChronicle\Features\SyncFromMailgun;
 
 use MailChronicle\Common\Entities\Email_Provider;
-use MailChronicle\Features\ManageSettings\ManageSettings;
+use MailChronicle\Features\ManageSettings\ManageSettingsInterface;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -30,7 +30,7 @@ final class SyncScheduler {
 
 	private SyncFromMailgun $handler;
 
-	private ManageSettings $settings;
+	private ManageSettingsInterface $settings;
 
 	/**
 	 * Default sync interval key.
@@ -101,7 +101,7 @@ final class SyncScheduler {
 		];
 	}
 
-	public function __construct( SyncFromMailgun $handler, ManageSettings $settings ) {
+	public function __construct( SyncFromMailgun $handler, ManageSettingsInterface $settings ) {
 		$this->handler  = $handler;
 		$this->settings = $settings;
 	}
@@ -112,6 +112,17 @@ final class SyncScheduler {
 	public function register_hooks(): void {
 		add_filter( 'cron_schedules', [ $this, 'add_cron_schedules' ] );
 		add_action( self::CRON_HOOK, [ $this, 'run' ] );
+		add_action( 'mail_chronicle_after_settings_saved', [ $this, 'on_settings_saved' ] );
+	}
+
+	/**
+	 * React to settings changes — reschedule the cron event.
+	 *
+	 * @param array<string, mixed> $settings The saved settings.
+	 */
+	public function on_settings_saved( array $settings ): void {
+		$interval = is_string( $settings['sync_interval'] ?? null ) ? $settings['sync_interval'] : 'disabled';
+		self::reschedule( $interval );
 	}
 
 	/**

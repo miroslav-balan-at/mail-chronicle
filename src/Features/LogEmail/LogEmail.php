@@ -12,11 +12,11 @@ declare(strict_types=1);
 
 namespace MailChronicle\Features\LogEmail;
 
-use MailChronicle\Common\Constants;
 use MailChronicle\Common\Entities\Email;
 use MailChronicle\Common\Entities\Email_Provider;
 use MailChronicle\Common\Entities\Email_Status;
 use MailChronicle\Common\Repository\EmailRepositoryInterface;
+use MailChronicle\Features\ManageSettings\ManageSettingsInterface;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -27,13 +27,27 @@ final class LogEmail {
 
 	private ?int $last_email_id = null;
 
+	/**
+	 * Closures registered on wp_mail_succeeded / wp_mail_failed for the current email.
+	 * Tracked so they can be removed after firing to prevent accumulation.
+	 *
+	 * @var array{succeeded: ?\Closure, failed: ?\Closure}
+	 */
+	private array $pending_hooks = [
+		'succeeded' => null,
+		'failed'    => null,
+	];
+
 	private EmailRepositoryInterface $email_repository;
+
+	private ManageSettingsInterface $settings;
 
 	/**
 	 * Constructor
 	 */
-	public function __construct( EmailRepositoryInterface $email_repository ) {
+	public function __construct( EmailRepositoryInterface $email_repository, ManageSettingsInterface $settings ) {
 		$this->email_repository = $email_repository;
+		$this->settings         = $settings;
 	}
 
 	/**
@@ -45,9 +59,8 @@ final class LogEmail {
 	}
 
 	public function handle( array $args ): array {
-		$settings = get_option( Constants::OPTION_SETTINGS, [] );
-		$settings = is_array( $settings ) ? $settings : [];
-		if ( ! isset( $settings['enabled'] ) || true !== $settings['enabled'] ) {
+		$settings = $this->settings->get();
+		if ( true !== ( $settings['enabled'] ?? false ) ) {
 			return $args;
 		}
 
@@ -136,52 +149,73 @@ final class LogEmail {
 			return;
 		}
 
-		$email_id = $this->last_email_id;
+		// Remove any previously registered hooks to prevent accumulation
+		// when multiple emails are sent in a single request.
+		$this->remove_pending_hooks();
 
-		add_action(
-			'wp_mail_succeeded',
-			function () use ( $phpmailer, $email_id ) {
-				// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- PHPMailer uses PascalCase property names.
-				if ( '' !== $phpmailer->MessageID ) {
-					// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- PHPMailer uses PascalCase property names.
-					$message_id = trim( $phpmailer->MessageID, '<>' );
-					$this->email_repository->update_status( $email_id, Email_Status::Sent->value, $message_id );
-				} else {
-					$this->email_repository->update_status( $email_id, Email_Status::Sent->value );
-				}
+		// PHPStan cannot narrow ?int through closure capture, so we assert here.
+		$email_id = (int) $this->last_email_id;
 
-				/**
-				 * Fires after an email log's send status has been updated.
-				 *
-				 * @since 1.0.0
-				 *
-				 * @param int         $email_id   Log entry ID.
-				 * @param string      $status     New status value.
-				 * @param string|null $message_id Provider message ID, or null on failure.
-				 */
-				// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
-				$resolved_message_id = '' !== $phpmailer->MessageID ? trim( $phpmailer->MessageID, '<>' ) : null;
-				do_action( 'mail_chronicle_email_status_updated', $email_id, Email_Status::Sent->value, $resolved_message_id );
-			}
-		);
+		$succeeded_hook = function () use ( $phpmailer, $email_id ): void {
+			$this->remove_pending_hooks();
 
-		add_action(
-			'wp_mail_failed',
-			function () use ( $email_id ) {
-				$this->email_repository->update_status( $email_id, Email_Status::Failed->value );
+			// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- PHPMailer uses PascalCase property names.
+			$resolved_message_id = '' !== $phpmailer->MessageID ? trim( $phpmailer->MessageID, '<>' ) : null;
 
-				/**
-				 * Fires after an email log's send status has been updated.
-				 *
-				 * @since 1.0.0
-				 *
-				 * @param int         $email_id   Log entry ID.
-				 * @param string      $status     New status value.
-				 * @param string|null $message_id Provider message ID, or null on failure.
-				 */
-				do_action( 'mail_chronicle_email_status_updated', $email_id, Email_Status::Failed->value, null );
-			}
-		);
+			$this->email_repository->update_status(
+				$email_id,
+				Email_Status::Sent->value,
+				$resolved_message_id
+			);
+
+			/**
+			 * Fires after an email log's send status has been updated.
+			 *
+			 * @since 1.0.0
+			 *
+			 * @param int         $email_id   Log entry ID.
+			 * @param string      $status     New status value.
+			 * @param string|null $message_id Provider message ID, or null on failure.
+			 */
+			do_action( 'mail_chronicle_email_status_updated', $email_id, Email_Status::Sent->value, $resolved_message_id );
+		};
+
+		$failed_hook = function () use ( $email_id ): void {
+			$this->remove_pending_hooks();
+
+			$this->email_repository->update_status( $email_id, Email_Status::Failed->value );
+
+			/**
+			 * Fires after an email log's send status has been updated.
+			 *
+			 * @since 1.0.0
+			 *
+			 * @param int         $email_id   Log entry ID.
+			 * @param string      $status     New status value.
+			 * @param string|null $message_id Provider message ID, or null on failure.
+			 */
+			do_action( 'mail_chronicle_email_status_updated', $email_id, Email_Status::Failed->value, null );
+		};
+
+		$this->pending_hooks['succeeded'] = $succeeded_hook;
+		$this->pending_hooks['failed']    = $failed_hook;
+
+		add_action( 'wp_mail_succeeded', $succeeded_hook );
+		add_action( 'wp_mail_failed', $failed_hook );
+	}
+
+	/**
+	 * Remove any pending wp_mail_succeeded / wp_mail_failed hooks.
+	 */
+	private function remove_pending_hooks(): void {
+		if ( null !== $this->pending_hooks['succeeded'] ) {
+			remove_action( 'wp_mail_succeeded', $this->pending_hooks['succeeded'] );
+			$this->pending_hooks['succeeded'] = null;
+		}
+		if ( null !== $this->pending_hooks['failed'] ) {
+			remove_action( 'wp_mail_failed', $this->pending_hooks['failed'] );
+			$this->pending_hooks['failed'] = null;
+		}
 	}
 
 	// ── Private helpers ───────────────────────────────────────────────────────
@@ -218,8 +252,7 @@ final class LogEmail {
 			}
 		}
 
-		$settings = get_option( Constants::OPTION_SETTINGS, [] );
-		$settings = is_array( $settings ) ? $settings : [];
+		$settings = $this->settings->get();
 
 		return isset( $settings['provider'] ) && is_string( $settings['provider'] )
 			? $settings['provider']

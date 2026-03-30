@@ -24,6 +24,7 @@ use MailChronicle\Features\GetEmails\GetEmails;
 use MailChronicle\Features\GetEmails\GetEmailsInterface;
 use MailChronicle\Features\LogEmail\LogEmail;
 use MailChronicle\Features\ManageSettings\ManageSettings;
+use MailChronicle\Features\ManageSettings\ManageSettingsInterface;
 use MailChronicle\Features\ManageSettings\SettingsController;
 use MailChronicle\Features\ManageSettings\SettingsPage;
 use MailChronicle\Features\ProcessMailgunWebhook\ProcessMailgunWebhook;
@@ -92,7 +93,9 @@ final class ServiceProvider {
 			function ( $container ) {
 				/** @var EmailRepositoryInterface $email_repository */
 				$email_repository = $container->get( 'common.repository.email' );
-				return new LogEmail( $email_repository );
+				/** @var ManageSettings $manage_settings */
+				$manage_settings = $container->get( 'feature.manage_settings' );
+				return new LogEmail( $email_repository, $manage_settings );
 			}
 		);
 
@@ -121,7 +124,9 @@ final class ServiceProvider {
 			function ( $container ) {
 				/** @var EmailRepositoryInterface $email_repository */
 				$email_repository = $container->get( 'common.repository.email' );
-				return new FetchStoredContent( $email_repository );
+				/** @var ManageSettings $manage_settings */
+				$manage_settings = $container->get( 'feature.manage_settings' );
+				return new FetchStoredContent( $email_repository, $manage_settings );
 			}
 		);
 
@@ -156,7 +161,9 @@ final class ServiceProvider {
 				$email_repository = $container->get( 'common.repository.email' );
 				/** @var ProviderEventRepositoryInterface $event_repository */
 				$event_repository = $container->get( 'common.repository.provider_event' );
-				return new ProcessMailgunWebhook( $email_repository, $event_repository );
+				/** @var ManageSettings $manage_settings */
+				$manage_settings = $container->get( 'feature.manage_settings' );
+				return new ProcessMailgunWebhook( $email_repository, $event_repository, $manage_settings );
 			}
 		);
 
@@ -175,7 +182,9 @@ final class ServiceProvider {
 			function ( $container ) {
 				/** @var EmailRepositoryInterface $email_repository */
 				$email_repository = $container->get( 'common.repository.email' );
-				return new SyncFromMailgun( $email_repository );
+				/** @var ManageSettings $manage_settings */
+				$manage_settings = $container->get( 'feature.manage_settings' );
+				return new SyncFromMailgun( $email_repository, $manage_settings );
 			}
 		);
 
@@ -184,7 +193,9 @@ final class ServiceProvider {
 			function ( $container ) {
 				/** @var SyncFromMailgun $sync_mailgun */
 				$sync_mailgun = $container->get( 'feature.sync_mailgun' );
-				return new SyncController( $sync_mailgun );
+				/** @var ManageSettings $manage_settings */
+				$manage_settings = $container->get( 'feature.manage_settings' );
+				return new SyncController( $sync_mailgun, $manage_settings );
 			}
 		);
 
@@ -235,14 +246,18 @@ final class ServiceProvider {
 				$manage_settings = $container->get( 'feature.manage_settings' );
 				/** @var DeleteEmailInterface $delete_email */
 				$delete_email = $container->get( 'feature.delete_email' );
-				return new SettingsPage( $manage_settings, $delete_email );
+				/** @var SyncFromMailgun $sync_mailgun */
+				$sync_mailgun = $container->get( 'feature.sync_mailgun' );
+				return new SettingsPage( $manage_settings, $delete_email, $sync_mailgun );
 			}
 		);
 
 		$this->container->register(
 			'feature.manage_settings.controller',
-			function ( $_container ) {
-				return new SettingsController();
+			function ( $container ) {
+				/** @var ManageSettings $manage_settings */
+				$manage_settings = $container->get( 'feature.manage_settings' );
+				return new SettingsController( $manage_settings );
 			}
 		);
 	}
