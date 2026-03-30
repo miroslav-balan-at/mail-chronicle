@@ -63,6 +63,11 @@ const EmailLogsApp = () => {
 		fetchEmails();
 	}, [ filters ] );
 
+	// Resume fetching pending bodies on page load.
+	useEffect( () => {
+		fetchPendingBodies();
+	}, [] );
+
 	const handleFilterChange = ( newFilters ) => {
 		setFilters( ( prev ) => ( { ...prev, ...newFilters, page: 1 } ) );
 	};
