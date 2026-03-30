@@ -11,6 +11,7 @@ use MailChronicle\Tests\TestCase;
 use MailChronicle\Features\GetEmails\EmailLogsController;
 use MailChronicle\Features\GetEmails\GetEmailsInterface;
 use MailChronicle\Features\DeleteEmail\DeleteEmailInterface;
+use MailChronicle\Features\FetchStoredContent\FetchStoredContentInterface;
 use Mockery;
 
 /**
@@ -25,7 +26,8 @@ class EmailLogsControllerTest extends TestCase {
 		$wpdb       = $this->create_mock_wpdb();
 		$get_emails    = Mockery::mock( GetEmailsInterface::class );
 		$delete_emails = Mockery::mock( DeleteEmailInterface::class );
-		$controller    = new EmailLogsController( $get_emails, $delete_emails );
+		$fetch_content = Mockery::mock( FetchStoredContentInterface::class );
+		$controller    = new EmailLogsController( $get_emails, $delete_emails, $fetch_content );
 
 		// Mock register_rest_route calls
 		global $_mock_rest_routes;
@@ -44,7 +46,8 @@ class EmailLogsControllerTest extends TestCase {
 		$wpdb       = $this->create_mock_wpdb();
 		$get_emails    = Mockery::mock( GetEmailsInterface::class );
 		$delete_emails = Mockery::mock( DeleteEmailInterface::class );
-		$controller    = new EmailLogsController( $get_emails, $delete_emails );
+		$fetch_content = Mockery::mock( FetchStoredContentInterface::class );
+		$controller    = new EmailLogsController( $get_emails, $delete_emails, $fetch_content );
 
 		// Test with permission
 		global $_mock_current_user_can;
@@ -66,7 +69,8 @@ class EmailLogsControllerTest extends TestCase {
 		$wpdb       = $this->create_mock_wpdb();
 		$get_emails    = Mockery::mock( GetEmailsInterface::class );
 		$delete_emails = Mockery::mock( DeleteEmailInterface::class );
-		$controller    = new EmailLogsController( $get_emails, $delete_emails );
+		$fetch_content = Mockery::mock( FetchStoredContentInterface::class );
+		$controller    = new EmailLogsController( $get_emails, $delete_emails, $fetch_content );
 
 		$params = $controller->get_collection_params();
 

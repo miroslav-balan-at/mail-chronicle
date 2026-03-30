@@ -697,6 +697,41 @@ if ( ! function_exists( 'wp_next_scheduled' ) ) {
 	}
 }
 
+/**
+ * Mock get_bloginfo function
+ */
+if ( ! function_exists( 'get_bloginfo' ) ) {
+	function get_bloginfo( $show = '', $filter = 'raw' ) {
+		global $_mock_bloginfo;
+		if ( isset( $_mock_bloginfo[ $show ] ) ) {
+			return $_mock_bloginfo[ $show ];
+		}
+		switch ( $show ) {
+			case 'admin_email':
+				return 'admin@example.com';
+			case 'name':
+				return 'Test Site';
+			case 'url':
+			case 'wpurl':
+				return 'http://example.com';
+			default:
+				return '';
+		}
+	}
+}
+
+/**
+ * Mock wp_parse_url function
+ */
+if ( ! function_exists( 'wp_parse_url' ) ) {
+	function wp_parse_url( $url, $component = -1 ) {
+		if ( $component === -1 ) {
+			return parse_url( $url );
+		}
+		return parse_url( $url, $component );
+	}
+}
+
 // Initialize global mock storage
 global $_mock_options, $_mock_actions, $_mock_json_response, $_mock_rest_routes, $_mock_current_user_can;
 $_mock_options          = array();
@@ -704,3 +739,4 @@ $_mock_actions          = array();
 $_mock_json_response    = null;
 $_mock_rest_routes      = array();
 $_mock_current_user_can = null;
+$_mock_bloginfo         = array();
