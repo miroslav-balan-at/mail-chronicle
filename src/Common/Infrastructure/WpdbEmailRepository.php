@@ -49,15 +49,69 @@ final class WpdbEmailRepository implements EmailRepositoryInterface {
 			'headers'             => $email->get_headers(),
 			'attachments'         => $email->get_attachments(),
 			'status'              => $email->get_status(),
+			'body_pending'        => $email->is_body_pending() ? 1 : 0,
 			'sent_at'             => $email->get_sent_at(),
 			'created_at'          => $email->get_created_at(),
 			'updated_at'          => $email->get_updated_at(),
 		];
 
+		// Use INSERT IGNORE when provider_message_id is set to silently skip
+		// duplicates that violate the UNIQUE(provider_message_id, recipient) constraint.
+		if ( null !== $db_data['provider_message_id'] && '' !== $db_data['provider_message_id'] ) {
+			return $this->insert_ignore( $db_data );
+		}
+
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
 		$result = $this->wpdb->insert( $this->table, $db_data );
 
 		return false !== $result ? (int) $this->wpdb->insert_id : false;
+	}
+
+	/**
+	 * Insert a row using INSERT IGNORE so duplicate (provider_message_id, recipient)
+	 * pairs are silently skipped rather than causing an error.
+	 *
+	 * @param array<string, mixed> $db_data Column values.
+	 * @return int|false Inserted row ID, or false when skipped as duplicate.
+	 */
+	private function insert_ignore( array $db_data ): int|false {
+		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$insert_sql = "INSERT IGNORE INTO {$this->table}
+				(provider_message_id, provider, sender, recipient, subject,
+				 message_html, message_plain, headers, attachments, status,
+				 body_pending, sent_at, created_at, updated_at)
+			VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %d, %s, %s, %s)";
+		$sql        = $this->wpdb->prepare(
+			$insert_sql, // @phpstan-ignore-line
+			$db_data['provider_message_id'],
+			$db_data['provider'],
+			$db_data['sender'],
+			$db_data['recipient'],
+			$db_data['subject'],
+			$db_data['message_html'],
+			$db_data['message_plain'],
+			$db_data['headers'],
+			$db_data['attachments'],
+			$db_data['status'],
+			$db_data['body_pending'],
+			$db_data['sent_at'],
+			$db_data['created_at'],
+			$db_data['updated_at']
+		);
+
+		if ( ! is_string( $sql ) ) {
+			return false;
+		}
+
+		$result = $this->wpdb->query( $sql );
+		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+
+		// INSERT IGNORE returns 0 affected rows when the row was a duplicate.
+		if ( false === $result || 0 === $result ) {
+			return false;
+		}
+
+		return (int) $this->wpdb->insert_id;
 	}
 
 	public function update_status( int $id, string $status, ?string $message_id = null ): void {
@@ -249,9 +303,7 @@ final class WpdbEmailRepository implements EmailRepositoryInterface {
 
 	public function count_pending_bodies(): int {
 		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		$count = $this->wpdb->get_var(
-			"SELECT COUNT(*) FROM {$this->table} WHERE message_html = '' AND headers LIKE '%mc_storage_url%'"
-		);
+		$count = $this->wpdb->get_var( "SELECT COUNT(*) FROM {$this->table} WHERE body_pending = 1" );
 		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
 		return is_numeric( $count ) ? (int) $count : 0;
@@ -260,12 +312,21 @@ final class WpdbEmailRepository implements EmailRepositoryInterface {
 	public function find_next_pending_body(): ?Email {
 		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$row = $this->wpdb->get_row(
-			"SELECT * FROM {$this->table} WHERE message_html = '' AND headers LIKE '%mc_storage_url%' ORDER BY id ASC LIMIT 1",
+			"SELECT * FROM {$this->table} WHERE body_pending = 1 ORDER BY id ASC LIMIT 1",
 			ARRAY_A
 		);
 		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
 		return is_array( $row ) ? new Email( $row ) : null;
+	}
+
+	public function resolve_body( int $id ): void {
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$this->wpdb->update(
+			$this->table,
+			[ 'body_pending' => 0 ],
+			[ 'id' => $id ]
+		);
 	}
 
 	public function delete( int $id ): bool {

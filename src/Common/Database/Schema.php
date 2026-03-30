@@ -21,7 +21,7 @@ final class Schema {
 	/**
 	 * Internal schema version. Bump whenever the table structure changes.
 	 */
-	const DB_VERSION = '1.2.0';
+	const DB_VERSION = '1.3.0';
 
 	private \wpdb $wpdb;
 
@@ -45,7 +45,7 @@ final class Schema {
 		$sql_logs = "CREATE TABLE {$table_logs} (
 			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
 			provider_message_id VARCHAR(255) DEFAULT NULL,
-            provider VARCHAR(50) DEFAULT 'WordPress',
+			provider VARCHAR(50) DEFAULT 'WordPress',
 			sender VARCHAR(255) NOT NULL DEFAULT '',
 			recipient VARCHAR(255) NOT NULL,
 			subject VARCHAR(500) NOT NULL,
@@ -54,18 +54,20 @@ final class Schema {
 			headers TEXT,
 			attachments TEXT,
 			status VARCHAR(50) DEFAULT 'pending',
+			body_pending TINYINT(1) NOT NULL DEFAULT 0,
 			sent_at DATETIME NOT NULL,
 			created_at DATETIME NOT NULL,
 			updated_at DATETIME NOT NULL,
 			PRIMARY KEY (id),
-			KEY provider_message_id (provider_message_id),
+			UNIQUE KEY uniq_message_recipient (provider_message_id, recipient(191)),
 			KEY provider (provider),
 			KEY recipient (recipient(191)),
 			KEY status (status),
 			KEY sent_at (sent_at),
 			KEY created_at (created_at),
 			KEY status_sent_at (status, sent_at),
-			KEY provider_sent_at (provider, sent_at)
+			KEY provider_sent_at (provider, sent_at),
+			KEY body_pending (body_pending)
 		) {$charset_collate};";
 
 		dbDelta( $sql_logs );

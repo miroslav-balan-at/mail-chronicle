@@ -42,6 +42,8 @@ final class Email {
 
 	private string $updated_at;
 
+	private bool $body_pending;
+
 	private int $open_count;
 
 	public function __construct( array $data = [] ) {
@@ -59,6 +61,7 @@ final class Email {
 		$this->sent_at             = is_string( $data['sent_at'] ?? null ) ? $data['sent_at'] : current_time( 'mysql' );
 		$this->created_at          = is_string( $data['created_at'] ?? null ) ? $data['created_at'] : current_time( 'mysql' );
 		$this->updated_at          = is_string( $data['updated_at'] ?? null ) ? $data['updated_at'] : current_time( 'mysql' );
+		$this->body_pending        = isset( $data['body_pending'] ) && ( true === $data['body_pending'] || ( is_numeric( $data['body_pending'] ) && 1 === (int) $data['body_pending'] ) );
 		$this->open_count          = is_numeric( $data['open_count'] ?? null ) ? (int) $data['open_count'] : 0;
 	}
 
@@ -205,6 +208,27 @@ final class Email {
 	}
 
 	/**
+	 * Whether the email body still needs to be fetched from provider storage.
+	 */
+	public function is_body_pending(): bool {
+		return $this->body_pending;
+	}
+
+	/**
+	 * Mark the body as fetched (or failed — either way, no longer pending).
+	 */
+	public function resolve_body(): void {
+		$this->body_pending = false;
+	}
+
+	/**
+	 * Mark the body as needing a fetch from provider storage.
+	 */
+	public function mark_body_pending(): void {
+		$this->body_pending = true;
+	}
+
+	/**
 	 * Get sent at
 	 */
 	public function get_sent_at(): string {
@@ -243,6 +267,7 @@ final class Email {
 			'headers'             => $this->headers,
 			'attachments'         => $this->attachments,
 			'status'              => $this->status,
+			'body_pending'        => $this->body_pending,
 			'open_count'          => $this->open_count,
 			'sent_at'             => $this->sent_at,
 			'created_at'          => $this->created_at,

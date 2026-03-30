@@ -301,8 +301,13 @@ final class SyncFromMailgun {
 				$this->update_existing( $existing[ $mid ], $event );
 				++$updated;
 			} else {
-				$this->insert_from_event( $event );
-				++$synced;
+				$inserted_id = $this->insert_from_event( $event );
+				if ( null !== $inserted_id ) {
+					$existing[ $mid ] = $inserted_id;
+					++$synced;
+				} else {
+					++$skipped;
+				}
 			}
 		}
 
@@ -315,7 +320,7 @@ final class SyncFromMailgun {
 	 * the URL is stored in the headers JSON under `mc_storage_url` for
 	 * on-demand retrieval — no HTTP call is made during sync.
 	 */
-	private function insert_from_event( array $event ): void {
+	private function insert_from_event( array $event ): ?int {
 		$message   = isset( $event['message'] ) && is_array( $event['message'] ) ? $event['message'] : [];
 		$headers   = isset( $message['headers'] ) && is_array( $message['headers'] ) ? $message['headers'] : [];
 		$status    = Email_Status::from_mailgun_event( is_string( $event['event'] ?? null ) ? $event['event'] : '' ) ?? Email_Status::Pending;
@@ -345,7 +350,13 @@ final class SyncFromMailgun {
 			]
 		);
 
-		$this->email_repository->save( $email );
+		if ( '' !== $storage_url ) {
+			$email->mark_body_pending();
+		}
+
+		$result = $this->email_repository->save( $email );
+
+		return false !== $result ? $result : null;
 	}
 
 	private function update_existing( int $id, array $event ): void {

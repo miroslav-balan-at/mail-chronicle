@@ -85,7 +85,13 @@ final class FetchStoredContent implements FetchStoredContentInterface {
 			]
 		);
 
+		$id = $email->get_id();
+
 		if ( is_wp_error( $response ) || 200 !== wp_remote_retrieve_response_code( $response ) ) {
+			// Mark as resolved so it's not retried in the pending-body loop.
+			if ( null !== $id ) {
+				$this->email_repository->resolve_body( $id );
+			}
 			return $email;
 		}
 
@@ -95,13 +101,14 @@ final class FetchStoredContent implements FetchStoredContentInterface {
 		$html  = isset( $data['body-html'] ) && is_string( $data['body-html'] ) ? $data['body-html'] : '';
 		$plain = isset( $data['body-plain'] ) && is_string( $data['body-plain'] ) ? $data['body-plain'] : '';
 
-		$id = $email->get_id();
 		if ( null !== $id ) {
 			$this->email_repository->update_content( $id, $html, $plain );
+			$this->email_repository->resolve_body( $id );
 		}
 
 		$email->set_message_html( $html );
 		$email->set_message_plain( $plain );
+		$email->resolve_body();
 
 		return $email;
 	}
