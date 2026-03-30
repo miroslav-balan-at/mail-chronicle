@@ -87,6 +87,21 @@ const EmailLogsApp = () => {
 		}
 	};
 
+	const fetchPendingBodies = async () => {
+		let done = false;
+		while ( ! done ) {
+			try {
+				const result = await apiFetch( {
+					path: '/mail-chronicle/v1/emails/fetch-body',
+					method: 'POST',
+				} );
+				done = result.done;
+			} catch {
+				done = true;
+			}
+		}
+	};
+
 	const handleSync = async () => {
 		setSyncing( true );
 		setError( null );
@@ -98,6 +113,10 @@ const EmailLogsApp = () => {
 
 			if ( response.success ) {
 				fetchEmails();
+
+				if ( response.data?.pending_bodies > 0 ) {
+					fetchPendingBodies().then( fetchEmails );
+				}
 			}
 		} catch ( err ) {
 			setError( err.message || __( 'Sync failed', 'mail-chronicle' ) );

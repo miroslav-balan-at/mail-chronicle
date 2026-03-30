@@ -18,6 +18,7 @@ declare(strict_types=1);
 namespace MailChronicle\Features\Sync;
 
 use MailChronicle\Common\Entities\Email_Provider;
+use MailChronicle\Common\Repository\EmailRepositoryInterface;
 use MailChronicle\Features\ManageSettings\ManageSettingsInterface;
 use MailChronicle\Features\SyncFromMailgun\SyncFromMailgun;
 use WP_Error;
@@ -37,14 +38,21 @@ class SyncController extends WP_REST_Controller {
 
 	private ManageSettingsInterface $settings;
 
+	private EmailRepositoryInterface $email_repository;
+
 	/**
 	 * Constructor
 	 */
-	public function __construct( SyncFromMailgun $sync_mailgun, ManageSettingsInterface $settings ) {
-		$this->namespace    = 'mail-chronicle/v1';
-		$this->rest_base    = 'sync';
-		$this->sync_mailgun = $sync_mailgun;
-		$this->settings     = $settings;
+	public function __construct(
+		SyncFromMailgun $sync_mailgun,
+		ManageSettingsInterface $settings,
+		EmailRepositoryInterface $email_repository
+	) {
+		$this->namespace        = 'mail-chronicle/v1';
+		$this->rest_base        = 'sync';
+		$this->sync_mailgun     = $sync_mailgun;
+		$this->settings         = $settings;
+		$this->email_repository = $email_repository;
 	}
 
 	/**
@@ -64,6 +72,7 @@ class SyncController extends WP_REST_Controller {
 			]
 		);
 	}
+
 
 	public function sync( WP_REST_Request $request ): WP_REST_Response|WP_Error {
 		$settings     = $this->settings->get();
@@ -127,12 +136,13 @@ class SyncController extends WP_REST_Controller {
 			[
 				'success' => true,
 				'data'    => [
-					'synced'   => $result['synced'],
-					'updated'  => $result['updated'],
-					'skipped'  => $result['skipped'],
-					'total'    => $result['total'],
-					'provider' => $provider->value,
-					'message'  => sprintf(
+					'synced'         => $result['synced'],
+					'updated'        => $result['updated'],
+					'skipped'        => $result['skipped'],
+					'total'          => $result['total'],
+					'pending_bodies' => $this->email_repository->count_pending_bodies(),
+					'provider'       => $provider->value,
+					'message'        => sprintf(
 						/* translators: %1$d: number of new emails synced, %2$d: number of existing emails updated */
 						__( 'Synced %1$d new emails and updated %2$d existing emails.', 'mail-chronicle' ),
 						$result['synced'],

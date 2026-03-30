@@ -23,6 +23,7 @@ use MailChronicle\Features\ManageSettings\SettingsPage;
 use MailChronicle\Features\LogEmail\LogEmail;
 use MailChronicle\Features\ProcessMailgunWebhook\WebhookController;
 use MailChronicle\Features\Sync\SyncController;
+use MailChronicle\Features\FetchStoredContent\FetchBodyController;
 use MailChronicle\Features\ManageSettings\SettingsController;
 
 /**
@@ -145,9 +146,13 @@ final class Plugin {
 		$settings_controller = $this->container->get( 'feature.manage_settings.controller' );
 		assert( $settings_controller instanceof SettingsController );
 
+		$fetch_body_controller = $this->container->get( 'feature.fetch_stored_content.controller' );
+		assert( $fetch_body_controller instanceof FetchBodyController );
+
 		$email_logs_controller->register_routes();
 		$webhook_controller->register_routes();
 		$sync_controller->register_routes();
+		$fetch_body_controller->register_routes();
 		$settings_controller->register_routes();
 	}
 

@@ -25,4 +25,12 @@ interface FetchStoredContentInterface {
 	 * @return Email|null
 	 */
 	public function handle( int $email_id ): ?Email;
+
+	/**
+	 * Find the next email with a pending body (has storage URL but empty body),
+	 * fetch its content, and persist it. Returns null when no pending emails remain.
+	 *
+	 * @return array{done: bool, remaining: int}
+	 */
+	public function fetch_next_pending(): array;
 }

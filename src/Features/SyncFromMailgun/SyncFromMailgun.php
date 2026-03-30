@@ -56,9 +56,15 @@ final class SyncFromMailgun {
 	const MAX_PAGES = 10;
 
 	/**
-	 * HTTP timeout in seconds for Mailgun API calls.
+	 * HTTP timeout in seconds for Mailgun Events API calls.
 	 */
-	const HTTP_TIMEOUT = 20;
+	const HTTP_TIMEOUT = 15;
+
+	/**
+	 * Maximum wall-clock seconds the entire sync run may take.
+	 * Prevents REST requests from hanging; remaining work is picked up by the next cron run.
+	 */
+	const MAX_RUN_SECONDS = 25;
 
 	private EmailRepositoryInterface $email_repository;
 
@@ -102,12 +108,17 @@ final class SyncFromMailgun {
 			? $this->build_initial_url( $domain, $region, is_numeric( $args['days'] ?? null ) ? (int) $args['days'] : 1, $limit )
 			: $this->get_cursor_url( $domain, $region, $limit );
 
-		$auth    = 'Basic ' . base64_encode( 'api:' . $api_key ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode
-		$synced  = 0;
-		$updated = 0;
-		$skipped = 0;
+		$auth       = 'Basic ' . base64_encode( 'api:' . $api_key ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode
+		$started_at = time();
+		$synced     = 0;
+		$updated    = 0;
+		$skipped    = 0;
 
 		for ( $page = 0; $page < self::MAX_PAGES; $page++ ) {
+			// Time budget: stop early so the REST response doesn't hang.
+			if ( ( time() - $started_at ) >= self::MAX_RUN_SECONDS ) {
+				break;
+			}
 			$result = $this->fetch_page( $url, $auth );
 
 			if ( ! $result['success'] ) {
@@ -142,7 +153,7 @@ final class SyncFromMailgun {
 				break;
 			}
 
-			$counts   = $this->process_events( $events, $auth );
+			$counts   = $this->process_events( $events );
 			$synced  += $counts['synced'];
 			$updated += $counts['updated'];
 			$skipped += $counts['skipped'];
@@ -263,7 +274,7 @@ final class SyncFromMailgun {
 	 * @param array<int, array<string, mixed>> $events
 	 * @return array{synced: int, updated: int, skipped: int}
 	 */
-	private function process_events( array $events, string $auth ): array {
+	private function process_events( array $events ): array {
 		$message_ids = [];
 		foreach ( $events as $event ) {
 			$mid = $this->extract_message_id( $event );
@@ -287,10 +298,10 @@ final class SyncFromMailgun {
 			}
 
 			if ( isset( $existing[ $mid ] ) ) {
-				$this->update_existing( $existing[ $mid ], $event, $auth );
+				$this->update_existing( $existing[ $mid ], $event );
 				++$updated;
 			} else {
-				$this->insert_from_event( $event, $auth );
+				$this->insert_from_event( $event );
 				++$synced;
 			}
 		}
@@ -304,7 +315,7 @@ final class SyncFromMailgun {
 	 * the URL is stored in the headers JSON under `mc_storage_url` for
 	 * on-demand retrieval — no HTTP call is made during sync.
 	 */
-	private function insert_from_event( array $event, string $auth ): void {
+	private function insert_from_event( array $event ): void {
 		$message   = isset( $event['message'] ) && is_array( $event['message'] ) ? $event['message'] : [];
 		$headers   = isset( $message['headers'] ) && is_array( $message['headers'] ) ? $message['headers'] : [];
 		$status    = Email_Status::from_mailgun_event( is_string( $event['event'] ?? null ) ? $event['event'] : '' ) ?? Email_Status::Pending;
@@ -315,11 +326,8 @@ final class SyncFromMailgun {
 			$headers['mc_storage_url'] = $storage_url;
 		}
 
-		$body = '' !== $storage_url ? $this->fetch_body_from_storage( $storage_url, $auth ) : [
-			'html'  => '',
-			'plain' => '',
-		];
-
+		// Body is NOT fetched here — it's fetched progressively via fetch_next_body()
+		// after the sync completes, so the sync response returns fast.
 		$sender = is_string( $event['sender'] ?? null ) ? $event['sender'] : ( is_string( $headers['from'] ?? null ) ? $headers['from'] : '' );
 
 		$email = new Email(
@@ -329,8 +337,8 @@ final class SyncFromMailgun {
 				'sender'              => $sender,
 				'recipient'           => is_string( $event['recipient'] ?? null ) ? $event['recipient'] : '',
 				'subject'             => is_string( $headers['subject'] ?? null ) ? $headers['subject'] : '',
-				'message_html'        => $body['html'],
-				'message_plain'       => $body['plain'],
+				'message_html'        => '',
+				'message_plain'       => '',
 				'headers'             => (string) wp_json_encode( $headers ),
 				'status'              => $status->value,
 				'sent_at'             => gmdate( 'Y-m-d H:i:s', $timestamp ),
@@ -340,7 +348,7 @@ final class SyncFromMailgun {
 		$this->email_repository->save( $email );
 	}
 
-	private function update_existing( int $id, array $event, string $auth ): void {
+	private function update_existing( int $id, array $event ): void {
 		$new_status     = Email_Status::from_mailgun_event( is_string( $event['event'] ?? null ) ? $event['event'] : '' ) ?? Email_Status::Pending;
 		$current_value  = $this->email_repository->get_status( $id );
 		$current_status = Email_Status::tryFrom( is_string( $current_value ) ? $current_value : '' ) ?? Email_Status::Pending;
@@ -363,45 +371,8 @@ final class SyncFromMailgun {
 					$headers_data['mc_storage_url'] = $storage_url;
 					$this->email_repository->update_headers( $id, (string) wp_json_encode( $headers_data ) );
 				}
-
-				if ( '' === $existing->get_message_html() ) {
-					$body = $this->fetch_body_from_storage( $storage_url, $auth );
-					if ( '' !== $body['html'] || '' !== $body['plain'] ) {
-						$this->email_repository->update_content( $id, $body['html'], $body['plain'] );
-					}
-				}
 			}
 		}
-	}
-
-	/**
-	 * Fetch body-html and body-plain from a Mailgun stored-message URL.
-	 *
-	 * @return array{html: string, plain: string}
-	 */
-	private function fetch_body_from_storage( string $storage_url, string $auth ): array {
-		$response = wp_remote_get(
-			$storage_url,
-			[
-				'headers' => [ 'Authorization' => $auth ],
-				'timeout' => self::HTTP_TIMEOUT,
-			]
-		);
-
-		if ( is_wp_error( $response ) || 200 !== wp_remote_retrieve_response_code( $response ) ) {
-			return [
-				'html'  => '',
-				'plain' => '',
-			];
-		}
-
-		$data = json_decode( wp_remote_retrieve_body( $response ), true );
-		$data = is_array( $data ) ? $data : [];
-
-		return [
-			'html'  => isset( $data['body-html'] ) && is_string( $data['body-html'] ) ? $data['body-html'] : '',
-			'plain' => isset( $data['body-plain'] ) && is_string( $data['body-plain'] ) ? $data['body-plain'] : '',
-		];
 	}
 
 	/**

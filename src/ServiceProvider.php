@@ -16,6 +16,7 @@ use MailChronicle\Common\Repository\EmailRepositoryInterface;
 use MailChronicle\Common\Repository\ProviderEventRepositoryInterface;
 use MailChronicle\Features\DeleteEmail\DeleteEmail;
 use MailChronicle\Features\DeleteEmail\DeleteEmailInterface;
+use MailChronicle\Features\FetchStoredContent\FetchBodyController;
 use MailChronicle\Features\FetchStoredContent\FetchStoredContent;
 use MailChronicle\Features\FetchStoredContent\FetchStoredContentInterface;
 use MailChronicle\Features\GetEmails\EmailLogsController;
@@ -131,6 +132,15 @@ final class ServiceProvider {
 		);
 
 		$this->container->register(
+			'feature.fetch_stored_content.controller',
+			function ( $container ) {
+				/** @var FetchStoredContentInterface $fetch_content */
+				$fetch_content = $container->get( 'feature.fetch_stored_content' );
+				return new FetchBodyController( $fetch_content );
+			}
+		);
+
+		$this->container->register(
 			'feature.get_emails.controller',
 			function ( $container ) {
 				/** @var GetEmailsInterface $get_emails */
@@ -195,7 +205,9 @@ final class ServiceProvider {
 				$sync_mailgun = $container->get( 'feature.sync_mailgun' );
 				/** @var ManageSettings $manage_settings */
 				$manage_settings = $container->get( 'feature.manage_settings' );
-				return new SyncController( $sync_mailgun, $manage_settings );
+				/** @var EmailRepositoryInterface $email_repository */
+				$email_repository = $container->get( 'common.repository.email' );
+				return new SyncController( $sync_mailgun, $manage_settings, $email_repository );
 			}
 		);
 

@@ -105,4 +105,36 @@ final class FetchStoredContent implements FetchStoredContentInterface {
 
 		return $email;
 	}
+
+	/**
+	 * @inheritDoc
+	 */
+	public function fetch_next_pending(): array {
+		$pending = $this->email_repository->count_pending_bodies();
+
+		if ( 0 === $pending ) {
+			return [
+				'done'      => true,
+				'remaining' => 0,
+			];
+		}
+
+		$email = $this->email_repository->find_next_pending_body();
+
+		if ( null === $email || null === $email->get_id() ) {
+			return [
+				'done'      => true,
+				'remaining' => 0,
+			];
+		}
+
+		$this->handle( $email->get_id() );
+
+		$remaining = $this->email_repository->count_pending_bodies();
+
+		return [
+			'done'      => 0 === $remaining,
+			'remaining' => $remaining,
+		];
+	}
 }

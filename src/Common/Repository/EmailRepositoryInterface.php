@@ -98,6 +98,20 @@ interface EmailRepositoryInterface {
 	public function update_headers( int $id, string $headers ): void;
 
 	/**
+	 * Count emails that have a storage URL but no body content yet.
+	 *
+	 * @return int Number of emails with pending body fetches.
+	 */
+	public function count_pending_bodies(): int;
+
+	/**
+	 * Find the next email that has a storage URL but no body content.
+	 *
+	 * @return Email|null The next email needing body fetch, or null if none.
+	 */
+	public function find_next_pending_body(): ?Email;
+
+	/**
 	 * Delete a single email and its associated events.
 	 *
 	 * @param int $id Log entry ID.

@@ -247,6 +247,27 @@ final class WpdbEmailRepository implements EmailRepositoryInterface {
 		);
 	}
 
+	public function count_pending_bodies(): int {
+		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$count = $this->wpdb->get_var(
+			"SELECT COUNT(*) FROM {$this->table} WHERE message_html = '' AND headers LIKE '%mc_storage_url%'"
+		);
+		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+
+		return is_numeric( $count ) ? (int) $count : 0;
+	}
+
+	public function find_next_pending_body(): ?Email {
+		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$row = $this->wpdb->get_row(
+			"SELECT * FROM {$this->table} WHERE message_html = '' AND headers LIKE '%mc_storage_url%' ORDER BY id ASC LIMIT 1",
+			ARRAY_A
+		);
+		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+
+		return is_array( $row ) ? new Email( $row ) : null;
+	}
+
 	public function delete( int $id ): bool {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$this->wpdb->delete(
